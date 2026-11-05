@@ -1,0 +1,16 @@
+{
+  "name": "KSQ və BSQ təhlili proqramı",
+  "short_name": "KSQ və BSQ",
+  "description": "İbtidai sinif müəllimləri üçün KSQ və BSQ nəticələrinin təhlili. © Rəhman Şərifov",
+  "lang": "az",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f6fb",
+  "theme_color": "#2f5bea",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

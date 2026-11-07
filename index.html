@@ -991,7 +991,7 @@ const maxName=()=>Math.max(8,...S.students.map(x=>String(x.name).length));
 const ordS=g=>({1:'-ci',2:'-ci',3:'-cü',4:'-cü'}[g]||'-ci');
 const DBN='ksq_bsq_tehlili', STORE='kv';
 const TOTAL=100;
-const APP_VER='3.7 · 05.11.2026';
+const APP_VER='3.8 · 07.11.2026';
 
 /* ================= KÖMƏKÇİLƏR ================= */
 const $=s=>document.querySelector(s);
@@ -1177,14 +1177,14 @@ const AYLAR=['Yanvar','Fevral','Mart','Aprel','May','İyun','İyul','Avqust','Se
 const HG=['B.e','Ç.a','Ç','C.a','C','Ş','B'];
 const dLong=s=>{ if(!s) return ''; const [y,m,d]=s.split('-').map(Number); return `${d} ${AYLAR[m-1].toLocaleLowerCase('az')} ${y}`; };
 const iso=(y,m,d)=>`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-const POP={el:null,anchor:null,onClose:null,close(){ if(this.el){ this.el.remove(); this.el=null; this.anchor?.classList.remove('open'); this.anchor=null; const f=this.onClose; this.onClose=null; if(f) f(); } }};
+const POP={el:null,anchor:null,onClose:null,t0:0,w0:0,close(){ if(this.el){ this.el.remove(); this.el=null; this.anchor?.classList.remove('open'); this.anchor=null; const f=this.onClose; this.onClose=null; if(f) f(); } }};
 document.addEventListener('mousedown',e=>{ if(POP.el&&!POP.el.contains(e.target)&&!POP.anchor?.contains(e.target)) POP.close(); },true);
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&POP.el){ e.stopPropagation(); POP.close(); } },true);
-window.addEventListener('resize',()=>POP.close());
-document.addEventListener('scroll',e=>{ if(POP.el&&!POP.el.contains(e.target)) POP.close(); },true);
+window.addEventListener('resize',()=>{ if(!POP.el) return; /* planşetdə klaviatura açılanda yalnız hündürlük dəyişir - menyunu bağlama */ if(Math.abs(innerWidth-POP.w0)<2) return; POP.close(); });
+document.addEventListener('scroll',e=>{ if(!POP.el||POP.el.contains(e.target)) return; /* açılışdan dərhal sonrakı və fokus menyudakı sürüşmələr bağlamasın */ if(Date.now()-POP.t0<700) return; if(POP.el.contains(document.activeElement)) return; POP.close(); },true);
 function popOpen(anchor,html,w){
   POP.close(); const p=document.createElement('div'); p.className='pop'; p.innerHTML=html; if(w) p.style.width=w+'px';
-  document.body.appendChild(p); POP.el=p; POP.anchor=anchor; anchor.classList.add('open');
+  document.body.appendChild(p); POP.el=p; POP.anchor=anchor; POP.t0=Date.now(); POP.w0=innerWidth; anchor.classList.add('open');
   const r=anchor.getBoundingClientRect(), pw=p.offsetWidth, ph=p.offsetHeight;
   let left=Math.min(r.left,innerWidth-pw-10), top=r.bottom+6; if(top+ph>innerHeight-10) top=Math.max(10,r.top-ph-6);
   p.style.left=Math.max(10,left)+'px'; p.style.top=top+'px'; return p;
@@ -1233,7 +1233,7 @@ function openSel(id){
   const wrap=p.querySelector('.ol-wrap');
   p.addEventListener('click',e=>{ const b=e.target.closest('.opt'); if(!b) return; const v=b.dataset.v; st.value=v; const o=st.options.find(x=>String(x.v)===v);
     a.classList.toggle('ph',!o); a.querySelector('span').textContent=o?o.label:st.placeholder; POP.close(); st.onChange&&st.onChange(v); });
-  const s=p.querySelector('.ss input'); if(s){ s.focus(); s.addEventListener('input',()=>wrap.innerHTML=list(s.value)); }
+  const s=p.querySelector('.ss input'); if(s){ if(!matchMedia('(pointer:coarse)').matches) s.focus({preventScroll:true}); s.addEventListener('input',()=>wrap.innerHTML=list(s.value)); }
 }
 
 /* ================= UI: ÜMUMİ ================= */

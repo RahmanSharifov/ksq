@@ -1002,7 +1002,7 @@ const maxName=()=>Math.max(8,...S.students.map(x=>String(x.name).length));
 const ordS=g=>({1:'-ci',2:'-ci',3:'-cü',4:'-cü'}[g]||'-ci');
 const DBN='ksq_bsq_tehlili', STORE='kv';
 const TOTAL=100;
-const APP_VER='3.8.4 · 11.11.2026';
+const APP_VER='3.8.5 · 11.11.2026';
 
 /* ================= KÖMƏKÇİLƏR ================= */
 const $=s=>document.querySelector(s);
@@ -2634,6 +2634,8 @@ function vMotorN(e){
   const inp=(g,i)=>`<td><input class="inp nin" id="nv-${g}-${i}" inputmode="decimal" autocomplete="off" value="${nm[g][i]==null?'':ftV(nm[g][i],e)}" onchange="setNormV('${g}',${i},this.value)"></td>`;
   const row=(g,t,sub)=>`<tr><td><b>${t}</b>${sub?`<div class="muted small">${sub}</div>`:''}</td>${[0,1,2].map(i=>inp(g,i)).join('')}<td id="prev-${g}">${normPrevRow(e,g)}</td></tr>`;
   return `<div class="note warn small">Bu bölmə <b>sınaq mərhələsindədir</b>. Hazır hədlər müəllimlərdən alınan KSQ cədvəllərindəndir. Rəsmi formanızla fərq görsəniz, hədləri aşağıda düzəldin: dəyişiklik yalnız bu KSQ üçün qüvvədədir.</div>
+  <div class="card"><h2><span class="hic">${ic('list')}</span>Alt standart <span class="sp"></span><span class="small muted" style="font-weight:500">İstəyə görə · hesabata düşür</span></h2>
+    ${mStdUI(e)}</div>
   <div class="card"><h2><span class="hic">${ic('target')}</span>Test və normativ cədvəli</h2>
     <div class="row" style="margin-bottom:14px;gap:12px;flex-wrap:wrap"><div style="min-width:320px">${cselect({id:'mTest',options:opts,value:e.test,onChange:v=>setMTest(v),w:340})}</div>
       <span class="muted small">${gr}${ordS(gr)} sinif · ${built?'hazır cədvəl var':'<span style="color:var(--bad)">bu sinif üçün hazır cədvəl yoxdur, hədləri özünüz yazın</span>'}</span><span class="sp" style="flex:1"></span>
@@ -2646,6 +2648,13 @@ function vMotorN(e){
 function setNormV(g,i,raw){ const e=curEx(), v=parseNum(raw), el=document.getElementById(`nv-${g}-${i}`), was=ftNormOk(e.norm);
   if(v!==null&&(isNaN(v)||v<0)){ el.classList.add('bad'); e.norm[g][i]=null; } else { el.classList.remove('bad'); e.norm[g][i]=v; }
   save(); const p=document.getElementById('prev-'+g); if(p) p.innerHTML=normPrevRow(e,g); if(was!==ftNormOk(e.norm)) render(); }
+function mStdUI(e){ const L=stdList(e.subject), m=L.find(x=>e.code&&x.code===e.code&&x.text===e.text);
+  const o=L.map(x=>({v:x.id,label:dc(x.code,e.subject)||'(kodsuz)',sub:x.text})); if(!m&&(e.code||e.text)) o.unshift({v:'__cur',label:dc(e.code,e.subject)||'(kodsuz)',sub:e.text});
+  if(e.code||e.text) o.push({v:'__x',label:'✕ Standartı götür',sub:''});
+  const val=m?m.id:(e.code||e.text?'__cur':'');
+  return `<div class="qstd">${cselect({id:'mStd',options:o,value:val,placeholder:'— standart seçin (məcburi deyil) —',search:true,onChange:v=>pickMStd(v),w:360})}<span class="qtxt">${esc(e.text)||'<span class="muted">Seçilməyibsə, hesabatda standart sətri olmayacaq.</span>'}</span></div>`; }
+function pickMStd(id){ const e=curEx(); if(id==='__cur') return; if(id==='__x'){ e.code='';e.text=''; save(); return render(); }
+  const x=stdList(e.subject).find(y=>y.id===id); if(!x) return; e.code=x.code; e.text=x.text; save(); render(); }
 function setMTest(v){ const e=curEx(); if(v===e.test) return; const has=Object.values(e.res||{}).some(r=>r.v!=null);
   const go2=()=>{ e.test=v; e.norm=ftNormFor(S.school.grade,v); e.res={}; save(); render(); };
   if(has){ render(); confirmBox('Testi dəyiş','Test dəyişəndə daxil edilmiş nəticələr silinəcək. Davam edilsin?',go2,'Dəyiş'); } else go2(); }
@@ -2732,6 +2741,7 @@ function mReport(kind){
   const gbl=B=>B.n?[B.k==='m'?'Oğlanlar':'Qızlar',String(B.n),ftV(B.avgV,e),fmt(B.avgG,2),pct(B.succ),pct(B.qual),`${B.gc[5]} / ${B.gc[4]} / ${B.gc[3]} / ${B.gc[2]}`]:[B.k==='m'?'Oğlanlar':'Qızlar','0','—','—','—','—','—'];
   const blocks=[{t:'title',text:`${exTitle(e)} · ${s.name.toLocaleUpperCase('az')}`,sub:`${ftTitle(e)} · ${clsName()} sinfi · ${dAz(e.date)}`},
     {t:'kv',rows:[['Məktəb',sc.name||'—'],['Müəllim',sc.teacher||'—'],['Sinif',clsName()+' sinfi'],['Tədris ili',sc.year||'—'],['Test',T.name],['Tarix',dAz(e.date)],['Şagird sayı',String(A.cls)],['İştirak edən',String(A.n)]]},
+    ...((e.code||e.text)?[{t:'h',text:'Yoxlanılan alt standart'},{t:'table',head:['Kod','Alt standart'],w:[18,82],left:[0,1],rows:[[dc(e.code,e.subject)||'—',e.text||'—']]}]:[]),
     {t:'h',text:'Normativ cədvəli'},
     {t:'table',head:['Cins',`“3” (${u})`,`“4” (${u})`,`“5” (${u})`,'Qayda'],w:[26,16,16,16,26],center:true,left:[0],rows:[nrow('m','Oğlanlar'+(e.test==='pull'?' (hündür turnik)':'')),nrow('f','Qızlar'+(e.test==='pull'?' (alçaq turnik)':''))]},
     {t:'text',text:low?'Vaxt testidir: həmin qiyməti almaq üçün nəticə yazılan hədd qədər və ya ondan az olmalıdır. Həddi ödəməyən "2" alır.':'Həmin qiyməti almaq üçün nəticə yazılan hədd qədər və ya ondan çox olmalıdır. Həddi ödəməyən "2" alır.'},
@@ -2753,7 +2763,7 @@ function normalize(st){
   st.school=Object.assign(defaultState().school,st.school||{}); st.ui=st.ui||{subject:null}; if(st.ui.subject&&!subj(st.ui.subject)) st.ui.subject=null;
   if(!Array.isArray(st.thresholds)||st.thresholds.length!==3) st.thresholds=[30,60,80];
   st.students=(st.students||[]).filter(x=>x&&x.id&&x.name); st.standards=st.standards||{};
-  st.exams=(st.exams||[]).filter(e=>e&&e.id&&subj(e.subject)&&Array.isArray(e.questions)).map(e=>{ e.scores=e.scores||{}; if(e.kind==='motor'){ e.res=e.res||{}; e.questions=[]; if(!FT_TESTS[e.test]) e.test='run30'; if(!e.norm||!Array.isArray(e.norm.m)||!Array.isArray(e.norm.f)) e.norm=ftNormFor(st.school.grade,e.test); e.norm.unit=FT_TESTS[e.test].unit; e.norm.dir=FT_TESTS[e.test].dir; ['m','f'].forEach(k=>{ if(e.norm[k].length!==3) e.norm[k]=[null,null,null]; }); }
+  st.exams=(st.exams||[]).filter(e=>e&&e.id&&subj(e.subject)&&Array.isArray(e.questions)).map(e=>{ e.scores=e.scores||{}; if(e.kind==='motor'){ e.res=e.res||{}; e.code=e.code||''; e.text=e.text||''; e.questions=[]; if(!FT_TESTS[e.test]) e.test='run30'; if(!e.norm||!Array.isArray(e.norm.m)||!Array.isArray(e.norm.f)) e.norm=ftNormFor(st.school.grade,e.test); e.norm.unit=FT_TESTS[e.test].unit; e.norm.dir=FT_TESTS[e.test].dir; ['m','f'].forEach(k=>{ if(e.norm[k].length!==3) e.norm[k]=[null,null,null]; }); }
     Object.values(e.scores).forEach(r=>{ if(r.v&&!r.a){ r.a=r.v.map(x=>x==null?null:(+x>0?'+':'-')); delete r.v; } if(!r.a) r.a=[]; });
     e.questions.forEach(q=>{ q.max=+q.max||0; q.code=q.code||''; q.text=q.text||''; q.type=q.type==='o'?'o':'q'; q.items=Array.isArray(q.items)?q.items.filter(x=>typeof x==='string'&&x):[]; }); return e; });
   if((st.stdVer||0)<STD_VER){ st._stdSynced=syncBuiltinStd(st); st.stdVer=STD_VER; }

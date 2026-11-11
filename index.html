@@ -992,7 +992,7 @@ const maxName=()=>Math.max(8,...S.students.map(x=>String(x.name).length));
 const ordS=g=>({1:'-ci',2:'-ci',3:'-cü',4:'-cü'}[g]||'-ci');
 const DBN='ksq_bsq_tehlili', STORE='kv';
 const TOTAL=100;
-const APP_VER='3.8.2 · 11.11.2026';
+const APP_VER='3.8.3 · 11.11.2026';
 
 /* ================= KÖMƏKÇİLƏR ================= */
 const $=s=>document.querySelector(s);
@@ -1178,18 +1178,17 @@ const AYLAR=['Yanvar','Fevral','Mart','Aprel','May','İyun','İyul','Avqust','Se
 const HG=['B.e','Ç.a','Ç','C.a','C','Ş','B'];
 const dLong=s=>{ if(!s) return ''; const [y,m,d]=s.split('-').map(Number); return `${d} ${AYLAR[m-1].toLocaleLowerCase('az')} ${y}`; };
 const iso=(y,m,d)=>`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-const POP={el:null,anchor:null,onClose:null,t0:0,w0:0,tt:0,close(){ if(this.el){ this.el.remove(); this.el=null; this.anchor?.classList.remove('open'); this.anchor=null; const f=this.onClose; this.onClose=null; if(f) f(); } }};
+const IS_TOUCH=()=>(navigator.maxTouchPoints>0)||('ontouchstart' in window)||(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
+const POP={el:null,anchor:null,onClose:null,t0:0,w0:0,tt:0,place(){ const p=this.el,a=this.anchor; if(!p||!a||!document.body.contains(a)) return; const r=a.getBoundingClientRect(), pw=p.offsetWidth, ph=p.offsetHeight; let left=Math.min(r.left,innerWidth-pw-10), top=r.bottom+6; if(top+ph>innerHeight-10) top=Math.max(10,r.top-ph-6); p.style.left=Math.max(10,left)+'px'; p.style.top=top+'px'; },close(){ if(this.el){ this.el.remove(); this.el=null; this.anchor?.classList.remove('open'); this.anchor=null; const f=this.onClose; this.onClose=null; if(f) f(); } }};
 document.addEventListener('mousedown',e=>{ if(POP.el&&!POP.el.contains(e.target)&&!POP.anchor?.contains(e.target)){ if(Date.now()-POP.t0<600) return; /* toxunmadan sonrakı 'kölgə' hadisə menyunu bağlamasın */ POP.close(); } },true);
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&POP.el){ e.stopPropagation(); POP.close(); } },true);
-window.addEventListener('resize',()=>{ if(!POP.el) return; if(Date.now()-POP.t0<1000) return; if(POP.el.contains(document.activeElement)) return; /* planşetdə klaviatura açılanda yalnız hündürlük dəyişir - menyunu bağlama */ if(Math.abs(innerWidth-POP.w0)<2) return; POP.close(); });
+window.addEventListener('resize',()=>{ if(!POP.el) return; /* toxunmatik cihazda (klaviatura, 'masaüstü sayt', çevirmə) menyu bağlanmır, yalnız yerini düzəldir */ if(IS_TOUCH()){ POP.place(); return; } if(Date.now()-POP.t0<1000) return; if(POP.el.contains(document.activeElement)) return; if(Math.abs(innerWidth-POP.w0)<2) return; POP.close(); });
 ['touchstart','touchmove','wheel'].forEach(t=>document.addEventListener(t,e=>{ if(POP.el&&POP.el.contains(e.target)) POP.tt=Date.now(); },{capture:true,passive:true}));
-document.addEventListener('scroll',e=>{ if(!POP.el||POP.el.contains(e.target)) return; /* siyahını sürüşdürəndə səhifə də tərpənirsə, menyu bağlanmasın */ if(Date.now()-POP.tt<2000) return; /* açılışdan dərhal sonrakı və fokus menyudakı sürüşmələr bağlamasın */ if(Date.now()-POP.t0<1200) return; if(POP.el.contains(document.activeElement)) return; POP.close(); },true);
+document.addEventListener('scroll',e=>{ if(!POP.el||POP.el.contains(e.target)) return; if(IS_TOUCH()){ POP.place(); return; } /* siyahını sürüşdürəndə səhifə də tərpənirsə, menyu bağlanmasın */ if(Date.now()-POP.tt<2000) return; /* açılışdan dərhal sonrakı və fokus menyudakı sürüşmələr bağlamasın */ if(Date.now()-POP.t0<1200) return; if(POP.el.contains(document.activeElement)) return; POP.close(); },true);
 function popOpen(anchor,html,w){
   POP.close(); const p=document.createElement('div'); p.className='pop'; p.innerHTML=html; if(w) p.style.width=w+'px';
   document.body.appendChild(p); POP.el=p; POP.anchor=anchor; POP.t0=Date.now(); POP.w0=innerWidth; anchor.classList.add('open');
-  const r=anchor.getBoundingClientRect(), pw=p.offsetWidth, ph=p.offsetHeight;
-  let left=Math.min(r.left,innerWidth-pw-10), top=r.bottom+6; if(top+ph>innerHeight-10) top=Math.max(10,r.top-ph-6);
-  p.style.left=Math.max(10,left)+'px'; p.style.top=top+'px'; return p;
+  POP.place(); return p;
 }
 /* --- tarix --- */
 const DP={};
@@ -1235,7 +1234,7 @@ function openSel(id){
   const wrap=p.querySelector('.ol-wrap');
   p.addEventListener('click',e=>{ const b=e.target.closest('.opt'); if(!b) return; if(Date.now()-POP.t0<300) return; const v=b.dataset.v; st.value=v; const o=st.options.find(x=>String(x.v)===v);
     a.classList.toggle('ph',!o); a.querySelector('span').textContent=o?o.label:st.placeholder; POP.close(); st.onChange&&st.onChange(v); });
-  const s=p.querySelector('.ss input'); if(s){ if(!matchMedia('(pointer:coarse)').matches) s.focus({preventScroll:true}); s.addEventListener('input',()=>wrap.innerHTML=list(s.value)); }
+  const s=p.querySelector('.ss input'); if(s){ if(!IS_TOUCH()) s.focus({preventScroll:true}); s.addEventListener('input',()=>wrap.innerHTML=list(s.value)); }
 }
 
 /* ================= UI: ÜMUMİ ================= */

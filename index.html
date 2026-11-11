@@ -427,6 +427,16 @@ body.dark table.sg .oi.zero{background:#3d1416;color:#fb8a8a;border-color:#dc262
 body.dark table.sg .oi.part{background:#3a2c0e;color:#fbbf5a;border-color:#d97706}
 body.dark .qn.qo{background:#3a2c0e;color:#fbbf5a}
 .brand .ver{color:#c7d2fe;font-weight:700}
+.gseg{padding:2px;border-radius:9px;gap:2px}.gseg button{padding:3px 11px;font-size:12px;border-radius:7px}
+.gseg button.on.m{background:#2563eb;color:#fff;box-shadow:0 1px 4px rgba(37,99,235,.45)}.gseg button.on.f{background:#db2777;color:#fff;box-shadow:0 1px 4px rgba(219,39,119,.45)}.gseg button:not(.on){opacity:.65}
+table.sg input.mi{width:104px;height:30px;margin:2px;border:1px solid var(--line2);border-radius:8px;background:#fff;text-align:center;font-weight:800;font-size:14px;outline:none}
+table.sg input.mi:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(47,91,234,.2)}
+table.sg input.mi.bad,.nin.bad{border-color:var(--bad);color:var(--bad)}
+table.sg tr.abs .mi{visibility:hidden}
+table.sg input.mi::placeholder{font-weight:500;color:#a3acbf}
+.nin{width:96px;text-align:center;font-weight:700}
+body.dark table.sg input.mi{background:var(--panel)}
+body.dark .gseg button.on.m{background:#3b82f6;color:#fff}body.dark .gseg button.on.f{background:#ec4899;color:#fff}
 </style>
 </head>
 <body>
@@ -992,7 +1002,7 @@ const maxName=()=>Math.max(8,...S.students.map(x=>String(x.name).length));
 const ordS=g=>({1:'-ci',2:'-ci',3:'-cü',4:'-cü'}[g]||'-ci');
 const DBN='ksq_bsq_tehlili', STORE='kv';
 const TOTAL=100;
-const APP_VER='3.8.3 · 11.11.2026';
+const APP_VER='3.8.4 · 11.11.2026';
 
 /* ================= KÖMƏKÇİLƏR ================= */
 const $=s=>document.querySelector(s);
@@ -1303,7 +1313,7 @@ const subjHead=s=>`<span style="display:inline-flex;align-items:center;gap:12px"
 /* ================= ANA SƏHİFƏ ================= */
 function vHome(){
   const sc=S.school, hasInfo=!!(sc.teacher&&sc.name), hasSt=S.students.length>0, hasStd=Object.values(S.standards).some(a=>a.length), hasEx=S.exams.length>0;
-  const allA=S.exams.map(e=>analyze(e)).filter(A=>A.n);
+  const allA=S.exams.map(e=>anyA(e)).filter(A=>A.n);
   const avgOf=k=>allA.length?sum(allA.map(A=>A[k]))/allA.length:null;
   let h=`<div class="hero"><div class="deco">${ic('chart')}</div><h1>${hasInfo?`${esc(clsName())} sinfi`:'Xoş gəlmisiniz!'}</h1>
     <p>${hasInfo?`${esc(sc.name)} · ${esc(sc.year)} tədris ili · ${esc(sc.teacher)}`:'KSQ və BSQ nəticələrini təhlil etmək üçün aşağıdakı addımları izləyin.'}</p>
@@ -1323,14 +1333,14 @@ function vHome(){
   }
   h+=`<div class="card"><h2><span class="hic">${ic('grid')}</span>Fənlər</h2><div class="picker">`+SUBJECTS.map(s=>{
     const ex=S.exams.filter(e=>e.subject===s.id).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-    const k=ex.filter(e=>e.type==='KSQ').length, b=ex.filter(e=>e.type==='BSQ').length, last=ex.find(e=>analyze(e).n>0);
-    const A=last?analyze(last):null;
+    const k=ex.filter(e=>e.type==='KSQ').length, b=ex.filter(e=>e.type==='BSQ').length, last=ex.find(e=>anyA(e).n>0);
+    const A=last?anyA(last):null;
     return `<div class="subj" style="--c:${s.color}" onclick="setSubject('${s.id}','exams')">${sic(s)}<b>${s.name}</b><div class="meta">KSQ: ${k} · BSQ: ${b} · Standart: ${(S.standards[stdKey(s.id)]||BUILTIN_STD[stdKey(s.id)]||[]).length}<br>
       ${A?`Son: ${exTitle(last)} — Müv. <b style="color:var(--ink)">${pct(A.succ)}</b> · Key. <b style="color:var(--ink)">${pct(A.qual)}</b>`:'<span>Hələ nəticə yoxdur</span>'}</div></div>`;}).join('')+`</div></div>`;
   const all=[...S.exams].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   if(all.length){
     h+=`<div class="card"><h2><span class="hic">${ic('chart')}</span>Ümumi icmal</h2><table class="t"><thead><tr><th>Fənn</th><th>Qiymətləndirmə</th><th>Tarix</th><th class="num">İştirak</th><th class="num">Orta bal</th><th class="num">Müvəffəqiyyət</th><th class="num">Keyfiyyət</th></tr></thead><tbody>`+
-    all.map(e=>{ const A=analyze(e), s=subj(e.subject); return `<tr style="cursor:pointer" onclick="openExam('${e.id}','a')"><td><span style="display:inline-flex;align-items:center;gap:10px">${sic(s,28)}${s.name}</span></td><td><b>${exTitle(e)}</b></td><td>${dAz(e.date)}</td><td class="num">${A.n}/${A.cls}</td><td class="num">${A.n?fmt(A.avg):'—'}</td><td class="num">${A.n?`<span class="chip lv-${level(A.succ)}">${pct(A.succ)}</span>`:'—'}</td><td class="num">${A.n?`<span class="chip lv-${level(A.qual)}">${pct(A.qual)}</span>`:'—'}</td></tr>`;}).join('')+`</tbody></table></div>`;
+    all.map(e=>{ const A=anyA(e), s=subj(e.subject); return `<tr style="cursor:pointer" onclick="openExam('${e.id}','a')"><td><span style="display:inline-flex;align-items:center;gap:10px">${sic(s,28)}${s.name}</span></td><td><b>${exTitle(e)}</b></td><td>${dAz(e.date)}</td><td class="num">${A.n}/${A.cls}</td><td class="num">${A.n?fmt(A.avg):'—'}</td><td class="num">${A.n?`<span class="chip lv-${level(A.succ)}">${pct(A.succ)}</span>`:'—'}</td><td class="num">${A.n?`<span class="chip lv-${level(A.qual)}">${pct(A.qual)}</span>`:'—'}</td></tr>`;}).join('')+`</tbody></table></div>`;
   }
   return h;
 }
@@ -1349,10 +1359,10 @@ function vClass(){
     ${f('letter','Sinif hərfi','məs. b')}
   </div></div>
   <div class="grid g2" style="align-items:start">
-  <div class="card"><h2><span class="hic">${ic('users')}</span>Şagird siyahısı <span class="muted small">(${S.students.length} şagird)</span><span class="sp"></span>
+  <div class="card"><h2><span class="hic">${ic('users')}</span>Şagird siyahısı <span class="muted small">(${S.students.length} şagird · cins: O – oğlan, Q – qız; yalnız Fiziki tərbiyə üçün lazımdır)</span><span class="sp"></span>
     ${S.students.length>1?`<button class="btn sm" onclick="sortStudents()">${ic('sort')}A→Z sırala</button>`:''}</h2>
-    ${S.students.length?`<table class="t"><thead><tr><th style="width:44px">№</th><th>Adı, soyadı</th><th style="width:110px"></th></tr></thead><tbody>`+
-      S.students.map((s,i)=>`<tr><td class="muted">${i+1}</td><td><input class="inp" value="${esc(s.name)}" onchange="renameStudent('${s.id}',this.value)"></td>
+    ${S.students.length?`<table class="t"><thead><tr><th style="width:44px">№</th><th>Adı, soyadı</th><th style="width:86px">Cins</th><th style="width:110px"></th></tr></thead><tbody>`+
+      S.students.map((s,i)=>`<tr><td class="muted">${i+1}</td><td><input class="inp" value="${esc(s.name)}" onchange="renameStudent('${s.id}',this.value)"></td><td>${gSeg(s,'render()')}</td>
       <td style="white-space:nowrap"><button class="icon-btn" title="Yuxarı" onclick="moveStudent(${i},-1)">${ic('up')}</button><button class="icon-btn" title="Aşağı" onclick="moveStudent(${i},1)">${ic('down')}</button><button class="icon-btn del" title="Sil" onclick="delStudent('${s.id}')">${ic('trash')}</button></td></tr>`).join('')+`</tbody></table>`
       :`<div class="empty"><div class="big">${ic('users')}</div>Hələ şagird yoxdur. Sağdakı xanaya siyahını yapışdırın.</div>`}
   </div>
@@ -1378,9 +1388,9 @@ function renameStudent(id,v){ const s=S.students.find(x=>x.id===id); if(s&&v.tri
 function moveStudent(i,d){ const j=i+d; if(j<0||j>=S.students.length) return; [S.students[i],S.students[j]]=[S.students[j],S.students[i]]; save(); render(); }
 function sortStudents(){ S.students.sort((a,b)=>azSort(a.name,b.name)); save(); render(); toast('Siyahı əlifba sırası ilə düzüldü'); }
 function delStudent(id){
-  const s=S.students.find(x=>x.id===id); const used=S.exams.filter(e=>e.scores[id]&&(e.scores[id].a||[]).some(v=>v!==null&&v!==undefined)).length;
+  const s=S.students.find(x=>x.id===id); const used=S.exams.filter(e=>(e.scores[id]&&(e.scores[id].a||[]).some(v=>v!==null&&v!==undefined))||(e.res&&e.res[id]&&e.res[id].v!=null)).length;
   confirmBox('Şagirdi sil',`<b>${esc(s.name)}</b> siyahıdan silinsin?${used?`<br><br><span style="color:var(--bad)">Bu şagirdin ${used} qiymətləndirmədə nəticəsi var, onlar da silinəcək.</span>`:''}`,()=>{
-    S.students=S.students.filter(x=>x.id!==id); S.exams.forEach(e=>delete e.scores[id]); save(); render(); });
+    S.students=S.students.filter(x=>x.id!==id); S.exams.forEach(e=>{ delete e.scores[id]; if(e.res) delete e.res[id]; }); save(); render(); });
 }
 
 /* ================= STANDARTLAR ================= */
@@ -1454,11 +1464,11 @@ function vExams(){
   if(!curSubj()) return `<div class="top"><h1>KSQ və BSQ</h1></div>`+subjectPicker('exams','Qiymətləndirmələr fənn üzrə aparılır. Davam etmək üçün fənn seçin.');
   const s=subj(curSubj()), ex=S.exams.filter(e=>e.subject===s.id);
   const block=(type,label)=>{ const L=ex.filter(e=>e.type===type).sort((a,b)=>a.num-b.num);
-    return `<div class="card"><h2>${label} <span class="muted small">(${L.length})</span><span class="sp"></span><button class="btn pri sm" onclick="newExam('${type}')">${ic('plus')}Yeni ${type}</button></h2>
-    ${L.length?L.map(e=>{ const A=analyze(e), tot=sum(e.questions.map(q=>q.max));
+    return `<div class="card"><h2>${label} <span class="muted small">(${L.length})</span><span class="sp"></span>${s.id==='ft'?`<button class="btn pri sm" onclick="newMotor('${type}')">${ic('plus')}Hərəki test</button><button class="btn sm" onclick="newExam('${type}')">${ic('plus')}Sual-bal</button>`:`<button class="btn pri sm" onclick="newExam('${type}')">${ic('plus')}Yeni ${type}</button>`}</h2>
+    ${L.length?L.map(e=>{ const A=anyA(e), tot=sum(e.questions.map(q=>q.max)), mo=e.kind==='motor';
       return `<div class="ex" onclick="openExam('${e.id}')"><div class="tag" style="background:${type==='KSQ'?s.color:'#0f1b3d'}">${exTitle(e)}</div>
-      <div class="info"><b>${exTitle(e)}${e.label?` · ${esc(e.label)}`:''}</b><div class="muted small">${dLong(e.date)} · ${e.questions.length} sual · ${tot===TOTAL?'bal sxemi hazırdır':`<span style="color:var(--bad)">bal cəmi ${fmt(tot)} / 100</span>`}</div></div>
-      <div class="stats"><div>İştirak<b>${A.n}/${A.cls}</b></div><div>Orta bal<b>${A.n?fmt(A.avg):'—'}</b></div><div>Müvəff.<b>${A.n?pct(A.succ):'—'}</b></div><div>Keyfiyyət<b>${A.n?pct(A.qual):'—'}</b></div></div>
+      <div class="info"><b>${exTitle(e)}${e.label?` · ${esc(e.label)}`:''}</b><div class="muted small">${dLong(e.date)} · ${mo?mInfo(e,A):`${e.questions.length} sual · ${tot===TOTAL?'bal sxemi hazırdır':`<span style="color:var(--bad)">bal cəmi ${fmt(tot)} / 100</span>`}`}</div></div>
+      <div class="stats"><div>İştirak<b>${A.n}/${A.cls}</b></div><div>${mo?'Orta nəticə':'Orta bal'}<b>${A.n?(mo?ftV(A.avgV,e)+' '+esc(e.norm.unit):fmt(A.avg)):'—'}</b></div><div>Müvəff.<b>${A.n?pct(A.succ):'—'}</b></div><div>Keyfiyyət<b>${A.n?pct(A.qual):'—'}</b></div></div>
       <div onclick="event.stopPropagation()"><button class="icon-btn del" title="Sil" onclick="delExam('${e.id}')">${ic('trash')}</button></div></div>`;}).join('')
     :`<div class="empty" style="padding:20px">Hələ ${type} yoxdur.</div>`}</div>`; };
   return `<div class="top"><div><div class="crumb">KSQ və BSQ · ${esc(clsName())} sinfi</div><h1>${subjHead(s)}</h1></div><span class="sp"></span>
@@ -1490,12 +1500,14 @@ function evenScheme(q,oc=0){ const base=Math.floor(TOTAL/q), rest=TOTAL-base*q; 
 function dupExam(id){ const e=exam(id); const same=S.exams.filter(x=>x.subject===e.subject&&x.type===e.type);
   const c={...JSON.parse(JSON.stringify(e)),id:uid(),num:Math.max(...same.map(x=>x.num))+1,scores:{},note:'',date:today(),created:Date.now()}; S.exams.push(c); save(); render(); toast(`${exTitle(c)} yaradıldı (suallar köçürüldü)`,'ok'); }
 function delExam(id){ const e=exam(id); confirmBox('Qiymətləndirməni sil',`<b>${exTitle(e)}</b> (${subj(e.subject).name}, ${dAz(e.date)}) və bütün nəticələri silinsin? Bu əməliyyat geri qaytarılmır.`,()=>{ S.exams=S.exams.filter(x=>x.id!==id); save(); if(U.view==='exam') go('exams'); else render(); }); }
-function openExam(id,tab){ const e=exam(id); if(!e) return; S.ui.subject=e.subject; save(); const tot=sum(e.questions.map(q=>q.max));
+function openExam(id,tab){ const e=exam(id); if(!e) return; S.ui.subject=e.subject; save();
+  if(e.kind==='motor'){ go('exam',{examId:id,examTab:tab||(!ftNormOk(e.norm)?'q':(analyzeM(e).n?'a':'r'))}); return; }
+  const tot=sum(e.questions.map(q=>q.max));
   go('exam',{examId:id,examTab:tab||(tot!==TOTAL?'q':(analyze(e).n?'a':'r'))}); }
 
 /* ================= QİYMƏTLƏNDİRMƏ SƏHİFƏSİ ================= */
 function vExam(){
-  const e=exam(U.examId); if(!e) return vExams(); const s=subj(e.subject), tot=sum(e.questions.map(q=>q.max)), ok=Math.abs(tot-TOTAL)<1e-9;
+  const e=exam(U.examId); if(!e) return vExams(); if(e.kind==='motor') return vMotor(e); const s=subj(e.subject), tot=sum(e.questions.map(q=>q.max)), ok=Math.abs(tot-TOTAL)<1e-9;
   if(!ok&&U.examTab!=='q') U.examTab='q';
   const tab=(k,t)=>`<a class="${U.examTab===k?'on':''} ${!ok&&k!=='q'?'dis':''}" onclick="${!ok&&k!=='q'?`toast('Əvvəlcə balların cəmini 100-ə çatdırın','err')`:`U.examTab='${k}';render()`}">${t}</a>`;
   let h=`<div class="top"><div><div class="crumb"><a onclick="go('exams')">${ic('back')} ${s.name}</a></div><h1>${sic(s,42)} ${exTitle(e)} <span class="muted" style="font-weight:500;font-size:16px">· ${s.name} · ${esc(clsName())} sinfi</span></h1></div><span class="sp"></span>
@@ -1617,6 +1629,7 @@ function vExamR(e){
     </tbody><tfoot><tr><td class="c-n"></td><td class="c-name">Mənimsəmə faizi</td>${A.qStats.map((s,j)=>`<td id="cf-${j}">${A.n?Math.round(s.pct)+'%':''}</td>`).join('')}<td></td><td id="cf-avg">${A.n?fmt(A.avg):''}</td><td></td><td></td><td></td></tr></tfoot></table></div>`;
 }
 function afterExam(){
+  if(curEx()&&curEx().kind==='motor') return afterMotor();
   if(U.examTab==='r'){
     const tb=$('#sg'); if(!tb) return;
     tb.addEventListener('click',ev=>{ const b=ev.target.closest('button.mk'); if(!b) return; const cur=b.dataset.m||markOf(b); setMark(b, cur===''?'+':cur==='+'?'-':''); });
@@ -2517,11 +2530,230 @@ const isEdge=()=>/\bEdg\//.test(navigator.userAgent)&&!(window.toolbar&&window.t
 function edgeBanner(){ return isEdge()?`<div class="note warn" style="display:flex;gap:12px;align-items:flex-start">${ic('alert',20)}<span style="flex:1;line-height:1.55"><b>Proqram Microsoft Edge-də açılıb.</b> Proqramı masaüstündəki <b>“KSQ və BSQ təhlili”</b> qısayolundan açın — o, Google Chrome-da açılır. Edge-də daxil etdiyiniz məlumatlar Chrome-da görünməyəcək.<br><span class="small muted">Edge-də artıq məlumat daxil etmisinizsə: burada “Tənzimləmələr → Ehtiyat nüsxəni yüklə”, sonra Chrome-da “Ehtiyat nüsxədən bərpa et”.</span></span></div>`:''; }
 
 /* ================= BAŞLAT ================= */
+/* ================= FİZİKİ TƏRBİYƏ: HƏRƏKİ TEST (v3.8, ilkin) ================= */
+/* Hərəki KSQ: sual-bal yoxdur. Şagirdin ölçülmüş nəticəsi (san, sm, dəfə, m) cins və sinfə görə normativ cədvəlindən 2–5 qiymətinə çevrilir.
+   Hədlər "başlanğıc həddi" kimi saxlanılır: "3", "4", "5" üçün lazım olan ən az (vaxt testində ən çox) nəticə. Həddi ödəməyən "2" alır. */
+const FT_TESTS={
+  run30:{name:'30 m qaçış',unit:'san',dir:'low',dec:1},
+  jump:{name:'Yerindən uzunluğa tullanma',unit:'sm',dir:'high',dec:0},
+  pull:{name:'Dartınma',unit:'dəfə',dir:'high',dec:0,nm:'Hündür turnikdə sallanmış vəziyyətdən dartınma',nf:'Alçaq turnikdə uzanmış vəziyyətdən dartınma'},
+  shuttle:{name:'Məkik qaçışı 3x10 m',unit:'san',dir:'low',dec:1},
+  reach:{name:'Oturuş vəziyyətindən irəliyə əyilmə',unit:'sm',dir:'high',dec:1,compact:true},
+  run6:{name:'6 dəqiqəlik qaçış',unit:'m',dir:'high',dec:0}
+};
+const FT_ABIL={run30:'Sürət',jump:'Sürət-güc',pull:'Qüvvə',shuttle:'Çeviklik',reach:'Əyilgənlik',run6:'Dözümlülük'};
+/* m = oğlanlar, f = qızlar; [“3” həddi, “4” həddi, “5” həddi]. Mənbə: müəllimlərdən alınan KSQ cədvəlləri (II və IV sinif). I və III sinif üçün cədvəl hələ yoxdur. */
+const FT_NORMS={
+  2:{ksq:{1:'run30',2:'jump',3:'pull',4:'shuttle',5:'reach',6:'run6'},
+     t:{run30:{m:[7.6,7.0,5.4],f:[8.0,7.2,5.6]}, jump:{m:[110,125,165],f:[100,125,155]}, pull:{m:[1,2,3],f:[2,5,8]},
+        shuttle:{m:[10.4,10.0,9.1],f:[11.2,10.7,9.7]}, reach:{m:[3,5,7],f:[5,8,12]}, run6:{m:[701,731,901],f:[501,601,801]}}},
+  4:{ksq:{1:'run30',2:'jump',3:'pull',4:'reach'},
+     t:{run30:{m:[6.9,6.6,5.2],f:[7.1,6.3,5.4]}, jump:{m:[121,136,175],f:[111,135,165]}, pull:{m:[2,4,5],f:[5,10,14]}, reach:{m:[3,6,8.5],f:[4,10,13]}}}
+};
+const ftDefaultTest=(grade,num)=>((FT_NORMS[grade]||{}).ksq||{})[num]||null;
+const ftHas=(grade,test)=>!!(((FT_NORMS[grade]||{}).t||{})[test]);
+function ftNormFor(grade,test){ const T=FT_TESTS[test], d=((FT_NORMS[grade]||{}).t||{})[test];
+  return {unit:T.unit,dir:T.dir,m:d?d.m.slice():[null,null,null],f:d?d.f.slice():[null,null,null]}; }
+function ftLevel(norm,g,v){ if(v==null||isNaN(v)||!g) return null; const c=norm[g]; if(!c||c.some(x=>x==null||isNaN(x))) return null; const [c3,c4,c5]=c;
+  if(norm.dir==='low') return v<=c5?5:v<=c4?4:v<=c3?3:2; return v>=c5?5:v>=c4?4:v>=c3?3:2; }
+function ftNormOk(norm){ return ['m','f'].every(g=>{ const c=norm[g]; if(!c||c.length!==3||c.some(x=>x==null||isNaN(x))) return false; return norm.dir==='low'?(c[0]>=c[1]&&c[1]>=c[2]):(c[0]<=c[1]&&c[1]<=c[2]); }); }
+const ftV=(v,e)=>{ if(v==null||isNaN(v)) return '—'; const T=FT_TESTS[e.test]||{}, d=T.dec||0; if(T.compact) return String(Math.round(v*100)/100).replace('.',','); return d?(+v).toFixed(d).replace('.',','):String(Math.round(v*100)/100).replace('.',','); };
+const ftTitle=e=>`${FT_ABIL[e.test]||''}${FT_ABIL[e.test]?' · ':''}${(FT_TESTS[e.test]||{}).name||''}`;
+const gName=g=>g==='m'?'Oğlan':g==='f'?'Qız':'—';
+
+function analyzeM(e){
+  const nm=e.norm;
+  const rows=S.students.map((st,i)=>{ const r=(e.res||{})[st.id]||{}, absent=!!r.absent, v=(r.v===null||r.v===undefined||isNaN(r.v))?null:+r.v;
+    const lv=!absent&&v!==null?ftLevel(nm,st.g,v):null;
+    return {st,i,absent,v,g:st.g||null,lv,entered:v!==null,part:!absent&&lv!==null,noSex:!absent&&v!==null&&!st.g}; });
+  const P=rows.filter(r=>r.part), n=P.length, gc={2:0,3:0,4:0,5:0}; P.forEach(r=>gc[r.lv]++);
+  const succ=n?(gc[3]+gc[4]+gc[5])/n*100:0, qual=n?(gc[4]+gc[5])/n*100:0, vals=P.map(r=>r.v);
+  const by=k=>{ const L=P.filter(r=>r.g===k), c={2:0,3:0,4:0,5:0}, m=L.length; L.forEach(r=>c[r.lv]++);
+    return {k,n:m,gc:c,avgV:m?sum(L.map(r=>r.v))/m:null,avgG:m?sum(L.map(r=>r.lv))/m:null,succ:m?(c[3]+c[4]+c[5])/m*100:0,qual:m?(c[4]+c[5])/m*100:0}; };
+  return {rows,P,n,cls:S.students.length,gc,succ,qual,avg:null,avgG:n?sum(P.map(r=>r.lv))/n:null,avgV:n?sum(vals)/n:null,
+    best:n?(nm.dir==='low'?Math.min(...vals):Math.max(...vals)):null, worst:n?(nm.dir==='low'?Math.max(...vals):Math.min(...vals)):null,
+    boys:by('m'),girls:by('f'),absent:rows.filter(r=>r.absent),noSex:rows.filter(r=>r.noSex),noData:rows.filter(r=>!r.absent&&!r.entered)};
+}
+const anyA=e=>e.kind==='motor'?analyzeM(e):analyze(e);
+function mInfo(e,A){ return `${esc(ftTitle(e))} · ${ftNormOk(e.norm)?'normativ hazırdır':'<span style="color:var(--bad)">normativ doldurulmayıb</span>'}`; }
+
+/* --- cins --- */
+function setGender(id,g){ const s=S.students.find(x=>x.id===id); if(!s) return; if(s.g===g) delete s.g; else s.g=g; save(); }
+const gSeg=(st,cb)=>`<span class="seg gseg"><button type="button" class="${st.g==='m'?'on m':''}" title="Oğlan" onclick="setGender('${st.id}','m');${cb||''}">O</button><button type="button" class="${st.g==='f'?'on f':''}" title="Qız" onclick="setGender('${st.id}','f');${cb||''}">Q</button></span>`;
+
+/* --- yaratma --- */
+function newMotor(type){
+  const s=curSubj(), same=S.exams.filter(e=>e.subject===s&&e.type===type), next=same.length?Math.max(...same.map(e=>e.num))+1:1, gr=S.school.grade;
+  const test=(type==='KSQ'&&ftDefaultTest(gr,next))||'run30';
+  const opts=Object.keys(FT_TESTS).map(k=>({v:k,label:FT_TESTS[k].name,sub:FT_ABIL[k]}));
+  modal({title:`Yeni ${type} · Hərəki test`,ok:'Yarat',body:`<div class="grid g2">
+    <div><label class="f">${type} nömrəsi</label><input class="inp" id="nNum" type="number" min="1" value="${next}" oninput="mNumPick(this.value,'${type}')"></div>
+    <div><label class="f">Tarix</label>${dateField('nDate',today())}</div>
+    <div style="grid-column:1/-1"><label class="f">Test</label>${cselect({id:'nTest',options:opts,value:test,onChange:()=>mHint()})}</div>
+    <div id="nHint" class="small" style="grid-column:1/-1;line-height:1.5"></div>
+    <div style="grid-column:1/-1"><label class="f">Qeyd (istəyə görə)</label><input class="inp" id="nLabel" placeholder="məs. I yarımil"></div></div>`,
+    onOk:r=>{ const num=+r.querySelector('#nNum').value, t=CS.nTest.value;
+      if(!(num>0)){ toast('Nömrə düzgün deyil','err'); return false; }
+      if(same.some(e=>e.num===num)){ toast(`${type}-${num} artıq var`,'err'); return false; }
+      if(!FT_TESTS[t]){ toast('Test seçin','err'); return false; }
+      const e={id:uid(),subject:s,type,num,date:DP.nDate.val,label:r.querySelector('#nLabel').value.trim(),kind:'motor',test:t,norm:ftNormFor(gr,t),questions:[],scores:{},res:{},note:'',created:Date.now()};
+      S.exams.push(e); save(); openExam(e.id); }});
+  setTimeout(mHint,0);
+}
+function mNumPick(v,type){ const t=type==='KSQ'?ftDefaultTest(S.school.grade,+v):null; if(t&&CS.nTest){ CS.nTest.value=t; const b=$('#nTest'); if(b){ b.classList.remove('ph'); b.querySelector('span').textContent=FT_TESTS[t].name; } } mHint(); }
+function mHint(){ const el=$('#nHint'); if(!el||!CS.nTest) return; const g=S.school.grade, t=CS.nTest.value;
+  el.innerHTML=ftHas(g,t)?`<span style="color:var(--ok)">✓</span> ${g}${ordS(g)} sinif üçün hazır normativ cədvəli var. Növbəti pəncərədə yoxlaya və lazım olsa düzəldə bilərsiniz.`
+    :`<span style="color:var(--bad)">${g}${ordS(g)} sinif üçün bu testin hazır cədvəli hələ yoxdur.</span> Normativ hədlərini növbəti pəncərədə rəsmi formadan yazacaqsınız.`; }
+
+/* --- əsas səhifə --- */
+function vMotor(e){
+  const s=subj(e.subject), ok=ftNormOk(e.norm);
+  if(!ok&&U.examTab!=='q') U.examTab='q';
+  const tab=(k,t)=>`<a class="${U.examTab===k?'on':''} ${!ok&&k!=='q'?'dis':''}" onclick="${!ok&&k!=='q'?`toast('Əvvəlcə normativ hədlərini doldurun','err')`:`U.examTab='${k}';render()`}">${t}</a>`;
+  return `<div class="top"><div><div class="crumb"><a onclick="go('exams')">${ic('back')} ${s.name}</a></div><h1>${sic(s,42)} ${exTitle(e)} <span class="muted" style="font-weight:500;font-size:16px">· ${esc(ftTitle(e))} · ${esc(clsName())} sinfi</span></h1></div><span class="sp"></span>
+    <div class="row"><label class="f" style="margin:0">Tarix</label>${dateField('exDate',e.date,v=>{ exam(U.examId).date=v; save(); },150)}
+    <input class="inp" style="width:180px" placeholder="Qeyd (məs. I yarımil)" value="${esc(e.label||'')}" onchange="exam(U.examId).label=this.value.trim();save()"></div></div>
+  <div class="tabs">${tab('q','<span class="n">1</span>Normativ')}${tab('r','<span class="n">2</span>Nəticələr')}${tab('a','<span class="n">3</span>Təhlil və hesabat')}</div>`
+  +(U.examTab==='q'?vMotorN(e):U.examTab==='r'?vMotorR(e):vMotorA(e));
+}
+function afterMotor(){
+  if(U.examTab==='r'){ const tb=$('#mg'); if(!tb) return; tb.addEventListener('input',ev=>{ if(ev.target.classList.contains('mi')) onMInput(ev.target); }); tb.addEventListener('keydown',onMKey);
+    tb.addEventListener('focusin',ev=>{ if(ev.target.classList.contains('mi')) ev.target.select(); }); }
+  if(U.examTab==='a'){ const e=curEx(), A=analyzeM(e); if(A.n) $('#chGrades')?.appendChild(mChartGrades(A,false)); }
+}
+
+/* --- 1. normativ --- */
+function normPrevRow(e,g){ const c=e.norm[g]; if(!c||c.some(x=>x==null||isNaN(x))) return '<span class="muted">hədləri doldurun</span>';
+  const f=x=>ftV(x,e), b=n=>`<span class="gr gr${n}" style="width:22px;height:22px;font-size:12px">${n}</span>`;
+  const ordered=e.norm.dir==='low'?[b(5)+' ≤ '+f(c[2]),b(4)+' ≤ '+f(c[1]),b(3)+' ≤ '+f(c[0]),b(2)+' &gt; '+f(c[0])]:[b(2)+' &lt; '+f(c[0]),b(3)+' ≥ '+f(c[0]),b(4)+' ≥ '+f(c[1]),b(5)+' ≥ '+f(c[2])];
+  const bad=e.norm.dir==='low'?!(c[0]>=c[1]&&c[1]>=c[2]):!(c[0]<=c[1]&&c[1]<=c[2]);
+  return `<span style="display:inline-flex;gap:14px;flex-wrap:wrap;align-items:center">${ordered.map(x=>`<span style="display:inline-flex;gap:5px;align-items:center">${x}</span>`).join('')}</span>${bad?`<div style="color:var(--bad);font-size:12px;margin-top:4px">Hədlər ardıcıl deyil: ${e.norm.dir==='low'?'“3” ≥ “4” ≥ “5”':'“3” ≤ “4” ≤ “5”'} olmalıdır.</div>`:''}`; }
+function vMotorN(e){
+  const T=FT_TESTS[e.test], nm=e.norm, gr=S.school.grade, built=ftHas(gr,e.test), low=nm.dir==='low';
+  const opts=Object.keys(FT_TESTS).map(k=>({v:k,label:FT_TESTS[k].name,sub:FT_ABIL[k]}));
+  const inp=(g,i)=>`<td><input class="inp nin" id="nv-${g}-${i}" inputmode="decimal" autocomplete="off" value="${nm[g][i]==null?'':ftV(nm[g][i],e)}" onchange="setNormV('${g}',${i},this.value)"></td>`;
+  const row=(g,t,sub)=>`<tr><td><b>${t}</b>${sub?`<div class="muted small">${sub}</div>`:''}</td>${[0,1,2].map(i=>inp(g,i)).join('')}<td id="prev-${g}">${normPrevRow(e,g)}</td></tr>`;
+  return `<div class="note warn small">Bu bölmə <b>sınaq mərhələsindədir</b>. Hazır hədlər müəllimlərdən alınan KSQ cədvəllərindəndir. Rəsmi formanızla fərq görsəniz, hədləri aşağıda düzəldin: dəyişiklik yalnız bu KSQ üçün qüvvədədir.</div>
+  <div class="card"><h2><span class="hic">${ic('target')}</span>Test və normativ cədvəli</h2>
+    <div class="row" style="margin-bottom:14px;gap:12px;flex-wrap:wrap"><div style="min-width:320px">${cselect({id:'mTest',options:opts,value:e.test,onChange:v=>setMTest(v),w:340})}</div>
+      <span class="muted small">${gr}${ordS(gr)} sinif · ${built?'hazır cədvəl var':'<span style="color:var(--bad)">bu sinif üçün hazır cədvəl yoxdur, hədləri özünüz yazın</span>'}</span><span class="sp" style="flex:1"></span>
+      ${built?`<button class="btn sm" onclick="resetNorm()">Hazır cədvələ qaytar</button>`:''}</div>
+    <table class="t"><thead><tr><th style="width:230px">Cins</th><th style="width:120px">“3” həddi (${nm.unit})</th><th style="width:120px">“4” həddi (${nm.unit})</th><th style="width:120px">“5” həddi (${nm.unit})</th><th>Qiymət qaydası</th></tr></thead><tbody>
+      ${row('m','Oğlanlar',e.test==='pull'?T.nm:'')}${row('f','Qızlar',e.test==='pull'?T.nf:'')}</tbody></table>
+    <div class="muted small" style="margin-top:12px;line-height:1.6">${low?'Bu, <b>vaxt testidir</b>: nəticə nə qədər azdırsa, qiymət o qədər yüksəkdir. Yazılan hədd həmin qiyməti almaq üçün <b>ən çox icazə verilən</b> nəticədir.':'Yazılan hədd həmin qiyməti almaq üçün <b>lazım olan ən az</b> nəticədir.'} Həddi ödəməyən şagird “2” alır. Cədvəldəki boşluqlar (məsələn, “4”-lə “5” arasındakı ara nəticələr) belə həll olunur: şagird yuxarı qiymətin həddinə çatmayıbsa, aşağı qiyməti alır.</div></div>
+  <div class="row" style="justify-content:flex-end"><button class="btn pri" onclick="U.examTab='r';render()" ${ftNormOk(nm)?'':'disabled'}>Nəticələrə keç →</button></div>`;
+}
+function setNormV(g,i,raw){ const e=curEx(), v=parseNum(raw), el=document.getElementById(`nv-${g}-${i}`), was=ftNormOk(e.norm);
+  if(v!==null&&(isNaN(v)||v<0)){ el.classList.add('bad'); e.norm[g][i]=null; } else { el.classList.remove('bad'); e.norm[g][i]=v; }
+  save(); const p=document.getElementById('prev-'+g); if(p) p.innerHTML=normPrevRow(e,g); if(was!==ftNormOk(e.norm)) render(); }
+function setMTest(v){ const e=curEx(); if(v===e.test) return; const has=Object.values(e.res||{}).some(r=>r.v!=null);
+  const go2=()=>{ e.test=v; e.norm=ftNormFor(S.school.grade,v); e.res={}; save(); render(); };
+  if(has){ render(); confirmBox('Testi dəyiş','Test dəyişəndə daxil edilmiş nəticələr silinəcək. Davam edilsin?',go2,'Dəyiş'); } else go2(); }
+function resetNorm(){ const e=curEx(); confirmBox('Hazır cədvələ qaytar','Bu KSQ-nin normativ hədləri hazır cədvəldəki qiymətlərlə əvəz olunsun?',()=>{ e.norm=ftNormFor(S.school.grade,e.test); save(); render(); },'Qaytar'); }
+
+/* --- 2. nəticələr --- */
+const mrec=(e,sid)=>{ e.res=e.res||{}; return e.res[sid]||(e.res[sid]={absent:false,v:null}); };
+function mLevel(e,r){ if(r.absent) return '<span class="small">yox</span>'; if(r.v===null) return ''; if(!r.g) return '<span class="chip lv-mid" title="Cinsi seçin">cins?</span>'; return `<span class="gr gr${r.lv}">${r.lv}</span>`; }
+function mRow(e,r){ return `<tr data-sid="${r.st.id}" class="${r.absent?'abs':''}"><td class="c-n">${r.i+1}</td><td class="c-name" title="${esc(r.st.name)}">${esc(r.st.name)}</td>
+  <td>${gSeg(r.st,`rowM('${r.st.id}')`)}</td>
+  <td><input class="mi" data-r="${r.i}" value="${r.v===null?'':ftV(r.v,e)}" inputmode="decimal" autocomplete="off" ${r.absent?'disabled':''} placeholder="${esc(e.norm.unit)}"></td>
+  <td class="grc" id="ml-${r.i}">${mLevel(e,r)}</td><td><input type="checkbox" ${r.absent?'checked':''} onchange="setMAbsent('${r.st.id}',this.checked)"></td></tr>`; }
+function mFootHtml(e,A){ return A.n?`İştirak: <b>${A.n}/${A.cls}</b> · Orta nəticə: <b>${ftV(A.avgV,e)} ${esc(e.norm.unit)}</b> · Müvəffəqiyyət: <b>${pct(A.succ)}</b> · Keyfiyyət: <b>${pct(A.qual)}</b>`:'Hələ nəticə daxil edilməyib.'; }
+function vMotorR(e){
+  if(!S.students.length) return `<div class="note warn">Şagird siyahısı boşdur. <a href="#" onclick="go('class');return false">Şagirdləri əlavə edin</a>.</div>`;
+  const A=analyzeM(e);
+  return `<div class="note info small" style="display:flex;gap:14px;flex-wrap:wrap;align-items:center"><span>Nəticəni (<b>${esc(e.norm.unit)}</b>) yazın, qiymət dərhal çıxır. Vergül və nöqtə hər ikisi olar.</span>
+    <span><kbd>Enter</kbd> / <kbd>↓</kbd> növbəti şagird, <kbd>↑</kbd> əvvəlki</span><span>Cins: <b>O</b> – oğlan, <b>Q</b> – qız (qiymət cinsə görə hesablanır)</span>${e.test==='pull'?'<span>Oğlanlar hündür, qızlar alçaq turnikdə dartınır.</span>':''}
+    <span class="sp" style="flex:1"></span><button class="btn sm pri" onclick="U.examTab='a';render()">Təhlilə keç →</button></div>
+  <div class="note info small" style="margin-top:-6px">Gəlməyən şagird üçün <b>“Yox”</b> işarəsini qoyun.</div>
+  <div class="gridwrap"><table class="sg" id="mg" style="--nmw:calc(${maxName()}ch + 24px)"><thead><tr><th class="c-n">№</th><th class="c-name">Şagirdin adı, soyadı</th><th style="min-width:92px">Cins</th><th style="min-width:120px">Nəticə (${esc(e.norm.unit)})</th><th style="min-width:70px">Qiymət</th><th style="min-width:46px">Yox</th></tr></thead>
+    <tbody>${A.rows.map(r=>mRow(e,r)).join('')}</tbody></table></div>
+  <div class="note small" id="mFoot" style="margin-top:12px">${mFootHtml(e,A)}</div>`;
+}
+function refreshMLevel(i){ const e=curEx(), A=analyzeM(e), r=A.rows[i], el=document.getElementById('ml-'+i); if(el) el.innerHTML=mLevel(e,r); const f=document.getElementById('mFoot'); if(f) f.innerHTML=mFootHtml(e,A); }
+function rowM(id){ const e=curEx(), A=analyzeM(e), r=A.rows.find(x=>x.st.id===id), tr=document.querySelector(`#mg tr[data-sid="${id}"]`); if(!r||!tr) return; tr.outerHTML=mRow(e,r); const f=document.getElementById('mFoot'); if(f) f.innerHTML=mFootHtml(e,A); }
+function onMInput(t){ const e=curEx(), i=+t.dataset.r, st=S.students[i]; if(!st) return; const r=mrec(e,st.id), v=parseNum(t.value);
+  if(v===null){ r.v=null; t.classList.remove('bad'); } else if(isNaN(v)||v<0){ r.v=null; t.classList.add('bad'); } else { r.v=v; t.classList.remove('bad'); }
+  save(); refreshMLevel(i); }
+function onMKey(ev){ const t=ev.target; if(!t.classList||!t.classList.contains('mi')) return; const up=ev.key==='ArrowUp'; if(!(ev.key==='Enter'||ev.key==='ArrowDown'||up)) return;
+  ev.preventDefault(); let j=+t.dataset.r+(up?-1:1), n=document.querySelector(`#mg .mi[data-r="${j}"]`); while(n&&n.disabled){ j+=up?-1:1; n=document.querySelector(`#mg .mi[data-r="${j}"]`); } if(n){ n.focus(); n.select(); } }
+function setMAbsent(sid,v){ const e=curEx(); mrec(e,sid).absent=v; save(); render(); }
+
+/* --- 3. təhlil --- */
+function mChartGrades(A,exp){ CHD=!exp&&isDark(); CHX=!!exp; const mx=Math.max(4,Math.ceil(Math.max(A.gc[5],A.gc[4],A.gc[3],A.gc[2])*1.2));
+  const c=vChart({labels:['"5"','"4"','"3"','"2"'],values:[A.gc[5],A.gc[4],A.gc[3],A.gc[2]],colors:[GRC[5],GRC[4],GRC[3],GRC[2]],max:mx,suffix:'',w:exp?600:500,h:280,title:'Qiymətlər üzrə paylanma (şagird sayı)',fixed:0}); CHD=false; CHX=false; return c; }
+function vMotorA(e){
+  const A=analyzeM(e), u=esc(e.norm.unit);
+  if(!A.n) return `<div class="card empty"><div class="big">${ic('chart')}</div>Hələ nəticə daxil edilməyib.<br><br><button class="btn pri" onclick="U.examTab='r';render()">Nəticələri daxil et</button></div>`;
+  const warn=[];
+  if(A.noSex.length) warn.push(`Cinsi seçilməyən şagirdlərin nəticəsi hesablanmır: <b>${A.noSex.map(r=>esc(r.st.name)).join(', ')}</b>`);
+  if(A.noData.length) warn.push(`Nəticəsi yazılmayan şagirdlər (hesablamaya daxil deyil): <b>${A.noData.map(r=>esc(r.st.name)).join(', ')}</b>`);
+  const kp=(l,v,sub,acc,icn)=>`<div class="kpi ${acc?'acc':''}"><div class="l"><span class="k">${ic(icn)}</span>${l}</div><div class="v">${v}</div><div class="s">${sub}</div></div>`;
+  const gr=B=>B.n?`<tr><td><b>${B.k==='m'?'Oğlanlar':'Qızlar'}</b></td><td class="num">${B.n}</td><td class="num">${ftV(B.avgV,e)}</td><td class="num">${fmt(B.avgG,2)}</td><td class="num">${pct(B.succ)}</td><td class="num">${pct(B.qual)}</td><td class="num small" style="white-space:nowrap">${B.gc[5]} / ${B.gc[4]} / ${B.gc[3]} / ${B.gc[2]}</td></tr>`:`<tr><td><b>${B.k==='m'?'Oğlanlar':'Qızlar'}</b></td><td colspan="6" class="muted">iştirak edən yoxdur</td></tr>`;
+  return `${warn.length?`<div class="note warn">${warn.join('<br>')}</div>`:''}
+  <div class="card" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><b>Hesabatı yüklə:</b>
+    <button class="btn pri" onclick="rbRun(0,()=>mReport('pdf'))">${ic('pdf')}PDF</button><button class="btn pri" onclick="rbRun(0,()=>mReport('docx'))">${ic('doc')}DOCX (Word)</button>
+    <span class="muted small">Hesabatda: normativ cədvəli, ümumi göstəricilər, oğlan və qızlar üzrə təhlil, şagirdlərin nəticələri, nəticə və təkliflər.</span></div>
+  <div class="grid g6" style="margin-bottom:16px">
+    ${kp('İştirak',`${A.n}/${A.cls}`,A.absent.length?`${A.absent.length} şagird gəlməyib`:'hamı iştirak edib',false,'userCheck')}
+    ${kp('Orta nəticə',`${ftV(A.avgV,e)} <span style="font-size:14px">${u}</span>`,`orta qiymət ${fmt(A.avgG,2)}`,true,'gauge')}
+    ${kp('Müvəffəqiyyət',pct(A.succ),'"3", "4", "5" alanlar',true,'target')}
+    ${kp('Keyfiyyət',pct(A.qual),'"4", "5" alanlar',true,'award')}
+    ${kp('Ən yaxşı nəticə',`${ftV(A.best,e)} <span style="font-size:14px">${u}</span>`,'',false,'trendUp')}
+    ${kp('Ən zəif nəticə',`${ftV(A.worst,e)} <span style="font-size:14px">${u}</span>`,'',false,'trendDown')}
+  </div>
+  <div class="grid g2w" style="align-items:start">
+    <div class="card"><h2>Qiymətlər</h2><table class="t"><thead><tr><th>Qiymət</th><th class="num">Say</th><th class="num">Faiz</th></tr></thead><tbody>
+      ${[5,4,3,2].map(g=>`<tr><td><span class="gr gr${g}">${g}</span></td><td class="num"><b>${A.gc[g]}</b></td><td class="num">${pct(A.gc[g]/A.n*100)}</td></tr>`).join('')}
+    </tbody></table><div id="chGrades" style="margin:10px auto 0;max-width:420px"></div></div>
+    <div class="card"><h2>Oğlanlar və qızlar</h2><table class="t"><thead><tr><th>Cins</th><th class="num">İştirak</th><th class="num">Orta nəticə (${u})</th><th class="num">Orta qiymət</th><th class="num">Müvəff.</th><th class="num">Keyf.</th><th class="num">5 / 4 / 3 / 2</th></tr></thead><tbody>${gr(A.boys)}${gr(A.girls)}</tbody></table></div>
+  </div>
+  <div class="card"><h2>Şagirdlərin nəticələri</h2><table class="t"><thead><tr><th style="width:44px">№</th><th>Adı, soyadı</th><th>Cins</th><th class="num">Nəticə (${u})</th><th class="num">Qiymət</th></tr></thead><tbody>
+    ${A.rows.map(r=>`<tr><td class="muted">${r.i+1}</td><td>${esc(r.st.name)}</td><td>${r.g?gName(r.g):'<span class="muted">—</span>'}</td><td class="num">${r.absent?'<span class="muted">yox</span>':ftV(r.v,e)}</td><td class="num">${r.part?`<span class="gr gr${r.lv}">${r.lv}</span>`:'<span class="muted">—</span>'}</td></tr>`).join('')}</tbody></table></div>
+  <div class="card"><h2>Nəticə və təkliflər <span class="sp"></span><button class="btn sm" onclick="genNoteM()">${ic('sparkles')}Avtomatik mətn yarat</button></h2>
+    <textarea class="inp" id="noteTx" style="min-height:130px" placeholder="Təhlilin nəticələri, zəif şagirdlərlə görüləcək işlər..." oninput="curEx().note=this.value;save()">${esc(e.note||'')}</textarea>
+    <div class="muted small" style="margin-top:6px">Bu mətn hesabatın sonunda çıxır. Avtomatik mətni redaktə edə bilərsiniz.</div></div>`;
+}
+function autoTextM(e,A){ const L=[], f=v=>`${ftV(v,e)} ${e.norm.unit}`;
+  L.push(`${exTitle(e)} (${ftTitle(e)}) ${dAz(e.date)} tarixində ${clsName()} sinfində keçirilmişdir. Sinifdə ${A.cls} şagird təhsil alır, qiymətləndirmədə ${A.n} şagird iştirak etmişdir.`);
+  L.push(`Müvəffəqiyyət faizi ${pct(A.succ)}, keyfiyyət faizi ${pct(A.qual)} təşkil edir. "5" – ${A.gc[5]}, "4" – ${A.gc[4]}, "3" – ${A.gc[3]}, "2" – ${A.gc[2]} şagird. Sinfin orta nəticəsi ${f(A.avgV)}, ən yaxşı nəticə ${f(A.best)}, ən zəif nəticə ${f(A.worst)}.`);
+  [[A.boys,'Oğlanlar'],[A.girls,'Qızlar']].forEach(([B,t])=>{ if(B.n) L.push(`${t}: iştirak ${B.n}, orta nəticə ${f(B.avgV)}, müvəffəqiyyət ${pct(B.succ)}, keyfiyyət ${pct(B.qual)}.`); });
+  const twos=A.P.filter(r=>r.lv===2).map(r=>r.st.name);
+  if(twos.length) L.push(`"2" alan şagirdlər: ${twos.join(', ')}. Bu şagirdlərlə ${(FT_ABIL[e.test]||'hərəki qabiliyyət').toLocaleLowerCase('az')} qabiliyyətini inkişaf etdirən fərdi məşqlər aparılmalıdır.`);
+  return L.join('\n'); }
+function genNoteM(){ const e=curEx(); const go2=()=>{ e.note=autoTextM(e,analyzeM(e)); save(); $('#noteTx').value=e.note; };
+  if(e.note&&e.note.trim()) confirmBox('Mətni əvəz et','Mövcud mətn avtomatik mətnlə əvəz olunsun?',go2,'Əvəz et'); else go2(); }
+
+/* --- hesabat --- */
+function mReport(kind){
+  const e=curEx(), A=analyzeM(e), sc=S.school, s=subj(e.subject), u=e.norm.unit, T=FT_TESTS[e.test], low=e.norm.dir==='low';
+  if(!A.n) return toast('Hələ nəticə daxil edilməyib','err');
+  const nrow=(g,t)=>{ const c=e.norm[g]; return [t,...c.map(x=>ftV(x,e)),low?'nəticə ≤ hədd':'nəticə ≥ hədd'] };
+  const gbl=B=>B.n?[B.k==='m'?'Oğlanlar':'Qızlar',String(B.n),ftV(B.avgV,e),fmt(B.avgG,2),pct(B.succ),pct(B.qual),`${B.gc[5]} / ${B.gc[4]} / ${B.gc[3]} / ${B.gc[2]}`]:[B.k==='m'?'Oğlanlar':'Qızlar','0','—','—','—','—','—'];
+  const blocks=[{t:'title',text:`${exTitle(e)} · ${s.name.toLocaleUpperCase('az')}`,sub:`${ftTitle(e)} · ${clsName()} sinfi · ${dAz(e.date)}`},
+    {t:'kv',rows:[['Məktəb',sc.name||'—'],['Müəllim',sc.teacher||'—'],['Sinif',clsName()+' sinfi'],['Tədris ili',sc.year||'—'],['Test',T.name],['Tarix',dAz(e.date)],['Şagird sayı',String(A.cls)],['İştirak edən',String(A.n)]]},
+    {t:'h',text:'Normativ cədvəli'},
+    {t:'table',head:['Cins',`“3” (${u})`,`“4” (${u})`,`“5” (${u})`,'Qayda'],w:[26,16,16,16,26],center:true,left:[0],rows:[nrow('m','Oğlanlar'+(e.test==='pull'?' (hündür turnik)':'')),nrow('f','Qızlar'+(e.test==='pull'?' (alçaq turnik)':''))]},
+    {t:'text',text:low?'Vaxt testidir: həmin qiyməti almaq üçün nəticə yazılan hədd qədər və ya ondan az olmalıdır. Həddi ödəməyən "2" alır.':'Həmin qiyməti almaq üçün nəticə yazılan hədd qədər və ya ondan çox olmalıdır. Həddi ödəməyən "2" alır.'},
+    {t:'h',text:'Ümumi göstəricilər'},
+    {t:'kv1',rows:[['Orta nəticə',`${ftV(A.avgV,e)} ${u}`],['Orta qiymət',fmt(A.avgG,2)],['Müvəffəqiyyət',pct(A.succ)],['Keyfiyyət',pct(A.qual)],['Ən yaxşı nəticə',`${ftV(A.best,e)} ${u}`],['Ən zəif nəticə',`${ftV(A.worst,e)} ${u}`]]},
+    {t:'table',head:['Qiymət','Şagird sayı','Faiz'],w:[20,20,20],center:true,rows:[5,4,3,2].map(g=>[String(g),String(A.gc[g]),pct(A.gc[g]/A.n*100)]),color:(r,c)=>c===0?GRC[[5,4,3,2][r]]:null,bold:(r,c)=>c===0},
+    {t:'img',canvas:mChartGrades(A,true),w:120},
+    {t:'h',text:'Oğlanlar və qızlar üzrə'},
+    {t:'table',head:['Cins','İştirak',`Orta nəticə (${u})`,'Orta qiymət','Müvəff.','Keyf.','5 / 4 / 3 / 2'],w:[18,10,18,14,12,12,20],center:true,left:[0],rows:[gbl(A.boys),gbl(A.girls)]},
+    {t:'h',text:'Şagirdlərin nəticələri'},
+    {t:'table',head:['№','Şagirdin adı, soyadı','Cins',`Nəticə (${u})`,'Qiymət'],w:[7,45,13,18,13],center:true,left:[1],rows:A.rows.map(r=>[String(r.i+1),r.st.name,r.g?gName(r.g):'—',r.absent?'yox':ftV(r.v,e),r.part?String(r.lv):'']),color:(r,c,v)=>c===4&&+v?GRC[+v]:null,bold:(r,c)=>c===4}];
+  if(e.note&&e.note.trim()) blocks.push({t:'h',text:'Nəticə və təkliflər'},{t:'text',text:e.note.trim()});
+  blocks.push({t:'sign'});
+  const name=fileSafe(`${exTitle(e)}_${s.name}_${T.name}_${clsName()}_${e.date||''}`), meta={color:'#2f5bea',footer:`${exTitle(e)} · ${s.name} · ${clsName()} sinfi`};
+  return kind==='pdf'?rbPdf(blocks,name,meta):rbDocx(blocks,name,meta);
+}
+
 function normalize(st){
   st.school=Object.assign(defaultState().school,st.school||{}); st.ui=st.ui||{subject:null}; if(st.ui.subject&&!subj(st.ui.subject)) st.ui.subject=null;
   if(!Array.isArray(st.thresholds)||st.thresholds.length!==3) st.thresholds=[30,60,80];
   st.students=(st.students||[]).filter(x=>x&&x.id&&x.name); st.standards=st.standards||{};
-  st.exams=(st.exams||[]).filter(e=>e&&e.id&&subj(e.subject)&&Array.isArray(e.questions)).map(e=>{ e.scores=e.scores||{};
+  st.exams=(st.exams||[]).filter(e=>e&&e.id&&subj(e.subject)&&Array.isArray(e.questions)).map(e=>{ e.scores=e.scores||{}; if(e.kind==='motor'){ e.res=e.res||{}; e.questions=[]; if(!FT_TESTS[e.test]) e.test='run30'; if(!e.norm||!Array.isArray(e.norm.m)||!Array.isArray(e.norm.f)) e.norm=ftNormFor(st.school.grade,e.test); e.norm.unit=FT_TESTS[e.test].unit; e.norm.dir=FT_TESTS[e.test].dir; ['m','f'].forEach(k=>{ if(e.norm[k].length!==3) e.norm[k]=[null,null,null]; }); }
     Object.values(e.scores).forEach(r=>{ if(r.v&&!r.a){ r.a=r.v.map(x=>x==null?null:(+x>0?'+':'-')); delete r.v; } if(!r.a) r.a=[]; });
     e.questions.forEach(q=>{ q.max=+q.max||0; q.code=q.code||''; q.text=q.text||''; q.type=q.type==='o'?'o':'q'; q.items=Array.isArray(q.items)?q.items.filter(x=>typeof x==='string'&&x):[]; }); return e; });
   if((st.stdVer||0)<STD_VER){ st._stdSynced=syncBuiltinStd(st); st.stdVer=STD_VER; }

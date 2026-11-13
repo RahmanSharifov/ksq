@@ -1,5 +1,5 @@
 /* KSQ və BSQ təhlili — oflayn işləmə və avtomatik yeniləmə. Bu faylı dəyişməyə ehtiyac yoxdur. */
-const CACHE = 'ksq-bsq-v1';
+const CACHE = 'ksq-bsq-v2';
 const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png'];
 
 self.addEventListener('install', e => {

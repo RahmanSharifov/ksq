@@ -1002,7 +1002,7 @@ const maxName=()=>Math.max(8,...S.students.map(x=>String(x.name).length));
 const ordS=g=>({1:'-ci',2:'-ci',3:'-cü',4:'-cü'}[g]||'-ci');
 const DBN='ksq_bsq_tehlili', STORE='kv';
 const TOTAL=100;
-const APP_VER='3.8.5 · 11.11.2026';
+const APP_VER='3.8.6 · 13.11.2026';
 
 /* ================= KÖMƏKÇİLƏR ================= */
 const $=s=>document.querySelector(s);
@@ -1501,7 +1501,7 @@ function dupExam(id){ const e=exam(id); const same=S.exams.filter(x=>x.subject==
   const c={...JSON.parse(JSON.stringify(e)),id:uid(),num:Math.max(...same.map(x=>x.num))+1,scores:{},note:'',date:today(),created:Date.now()}; S.exams.push(c); save(); render(); toast(`${exTitle(c)} yaradıldı (suallar köçürüldü)`,'ok'); }
 function delExam(id){ const e=exam(id); confirmBox('Qiymətləndirməni sil',`<b>${exTitle(e)}</b> (${subj(e.subject).name}, ${dAz(e.date)}) və bütün nəticələri silinsin? Bu əməliyyat geri qaytarılmır.`,()=>{ S.exams=S.exams.filter(x=>x.id!==id); save(); if(U.view==='exam') go('exams'); else render(); }); }
 function openExam(id,tab){ const e=exam(id); if(!e) return; S.ui.subject=e.subject; save();
-  if(e.kind==='motor'){ go('exam',{examId:id,examTab:tab||(!ftNormOk(e.norm)?'q':(analyzeM(e).n?'a':'r'))}); return; }
+  if(e.kind==='motor'){ go('exam',{examId:id,examTab:tab||(!ftNormOk(e.norm)?'q':(analyzeM(e).n?'a':'q'))}); return; }
   const tot=sum(e.questions.map(q=>q.max));
   go('exam',{examId:id,examTab:tab||(tot!==TOTAL?'q':(analyze(e).n?'a':'r'))}); }
 
@@ -2597,7 +2597,7 @@ function newMotor(type){
       if(same.some(e=>e.num===num)){ toast(`${type}-${num} artıq var`,'err'); return false; }
       if(!FT_TESTS[t]){ toast('Test seçin','err'); return false; }
       const e={id:uid(),subject:s,type,num,date:DP.nDate.val,label:r.querySelector('#nLabel').value.trim(),kind:'motor',test:t,norm:ftNormFor(gr,t),questions:[],scores:{},res:{},note:'',created:Date.now()};
-      S.exams.push(e); save(); openExam(e.id); }});
+      S.exams.push(e); save(); openExam(e.id,'q'); }});
   setTimeout(mHint,0);
 }
 function mNumPick(v,type){ const t=type==='KSQ'?ftDefaultTest(S.school.grade,+v):null; if(t&&CS.nTest){ CS.nTest.value=t; const b=$('#nTest'); if(b){ b.classList.remove('ph'); b.querySelector('span').textContent=FT_TESTS[t].name; } } mHint(); }

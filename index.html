@@ -1002,7 +1002,7 @@ const maxName=()=>Math.max(8,...S.students.map(x=>String(x.name).length));
 const ordS=g=>({1:'-ci',2:'-ci',3:'-cü',4:'-cü'}[g]||'-ci');
 const DBN='ksq_bsq_tehlili', STORE='kv';
 const TOTAL=100;
-const APP_VER='3.8.7 · 14.11.2026';
+const APP_VER='3.8.8 · 15.11.2026';
 
 /* ================= KÖMƏKÇİLƏR ================= */
 const $=s=>document.querySelector(s);
@@ -1085,7 +1085,7 @@ function analyze(ex){
   const m=new Map();
   qs.forEach((q,j)=>{ const key=(q.code||'').trim()||'—'; if(!m.has(key)) m.set(key,{code:key,text:'',qn:[],max:0,earned:0,items:[]});
     const g=m.get(key); (q.items||[]).forEach(t=>{ if(!g.items.includes(t)) g.items.push(t); }); g.qn.push(j+1); g.max+=q.max; g.earned+=qStats[j].sum; if(!g.text&&q.text) g.text=q.text; });
-  const stdStats=[...m.values()].map(g=>({...g,pct:n&&g.max?g.earned/(g.max*n)*100:0}));
+  const stdStats=[...m.values()].filter(g=>g.code!=='—').map(g=>({...g,pct:n&&g.max?g.earned/(g.max*n)*100:0}));
   return {rows,P,n,cls:S.students.length,avg,gc,succ,qual,qStats,stdStats,maxT,
     hi:n?Math.max(...P.map(r=>r.total)):0, lo:n?Math.min(...P.map(r=>r.total)):0,
     emptyCells:P.reduce((a,r)=>a+r.empty,0), absent:rows.filter(r=>r.absent), noData:rows.filter(r=>!r.absent&&!r.entered)};
@@ -1175,7 +1175,7 @@ function hChart({labels,values,colors,max=100,w=900,title=''}){
 function chartsFor(ex,A,forExport){
   CHD=!forExport&&isDark(); CHX=!!forExport; const W=forExport?1000:900;
   const r={
-    grades: vChart({labels:['"5"','"4"','"3"','"2"'],values:[A.gc[5],A.gc[4],A.gc[3],A.gc[2]],colors:[GRC[5],GRC[4],GRC[3],GRC[2]],max:Math.max(4,Math.ceil(Math.max(A.gc[5],A.gc[4],A.gc[3],A.gc[2])*1.2)),suffix:'',w:forExport?600:500,h:280,title:'Qiymətlər üzrə paylanma (şagird sayı)',fixed:0}),
+    grades: vChart({labels:['"5"','"4"','"3"','"2"'],values:[A.gc[5],A.gc[4],A.gc[3],A.gc[2]],colors:[GRC[5],GRC[4],GRC[3],GRC[2]],max:Math.max(5,Math.ceil(Math.max(A.gc[5],A.gc[4],A.gc[3],A.gc[2])*1.2/5)*5),suffix:'',w:forExport?600:500,h:280,title:'Qiymətlər üzrə paylanma (şagird sayı)',fixed:0}),
     qs: vChart({labels:A.qStats.map(s=>String(s.j+1)),values:A.qStats.map(s=>s.pct),colors:A.qStats.map(s=>LVC[level(s.pct)]),w:W,h:300,title:'Suallar üzrə mənimsəmə faizi'}),
     std: vChart({labels:A.stdStats.map(s=>dc(s.code,ex.subject)),values:A.stdStats.map(s=>s.pct),colors:A.stdStats.map(s=>LVC[level(s.pct)]),w:W,h:300,title:'Alt standartlar üzrə mənimsəmə faizi'}),
     st: hChart({labels:A.P.map(r=>`${r.i+1}. ${r.st.name}`),values:A.P.map(r=>r.total),colors:A.P.map(r=>GRC[r.grade]),w:W,title:'Şagirdlərin topladığı bal (100 baldan)'})
@@ -1700,10 +1700,10 @@ function vExamA(e){
       ${[5,4,3,2].map(g=>{ const t=S.thresholds, rng={5:`${t[2]+1}–100`,4:`${t[1]+1}–${t[2]}`,3:`${t[0]+1}–${t[1]}`,2:`0–${t[0]}`}[g];
         return `<tr><td><span class="gr gr${g}">${g}</span></td><td class="muted">${rng}</td><td class="num"><b>${A.gc[g]}</b></td><td class="num">${pct(A.gc[g]/A.n*100)}</td></tr>`;}).join('')}
     </tbody></table><div id="chGrades" style="margin:10px auto 0;max-width:420px"></div></div>
-    <div class="card"><h2>Alt standartlar üzrə mənimsəmə</h2><table class="t"><thead><tr><th>Alt standart</th>${A.stdStats.some(x=>x.items.length)?'<th>Yoxlanılan fəaliyyətlər</th>':''}<th class="num">Suallar</th><th style="width:150px">Mənimsəmə</th></tr></thead><tbody>
+    <div class="card"><h2>Alt standartlar üzrə mənimsəmə</h2>${!A.stdStats.length?`<div class="muted small" style="padding:6px 2px 4px;line-height:1.5">Suallara alt standart seçilməyib. Qiymətləndirmədə suallara alt standart təyin etsəniz, mənimsəmə burada görünəcək.</div>`:`<table class="t"><thead><tr><th>Alt standart</th>${A.stdStats.some(x=>x.items.length)?'<th>Yoxlanılan fəaliyyətlər</th>':''}<th class="num">Suallar</th><th style="width:150px">Mənimsəmə</th></tr></thead><tbody>
       ${A.stdStats.map(x=>`<tr><td class="small"><b>${x.code==='—'?'<span class="muted">Standart seçilməyib</span>':esc(dc(x.code,e.subject))}</b> ${esc(x.text)}</td>${A.stdStats.some(y=>y.items.length)?`<td>${x.items.length?`<ul class="qil">${x.items.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`:'<span class="muted">—</span>'}</td>`:''}<td class="num small">${x.qn.join(', ')}</td>
         <td><div style="display:flex;align-items:center;gap:8px"><div class="bar" style="flex:1"><i style="width:${x.pct}%;background:${LVC[level(x.pct)]}"></i></div><span class="chip lv-${level(x.pct)}">${Math.round(x.pct)}%</span></div></td></tr>`).join('')}
-    </tbody></table><div id="chStd" style="margin-top:14px"></div></div>
+    </tbody></table><div id="chStd" style="margin-top:14px"></div>`}</div>
   </div>
   <div class="card"><h2>Suallar üzrə təhlil</h2><div id="chQs" style="margin-bottom:12px"></div>
     <table class="t"><thead><tr><th style="width:50px">№</th><th>Növ</th><th style="width:100px">Standart</th><th class="num">Bal</th><th class="num">Orta bal</th><th class="num">Düz / tam bal</th><th class="num">Qismən</th><th class="num">Səhv / 0 bal</th><th class="num">Boş</th><th style="width:170px">Mənimsəmə</th></tr></thead><tbody>
@@ -1790,7 +1790,7 @@ function exportPdf(O){
     if(O.kpi){ doc.autoTable({rowPageBreak:'avoid',startY:y,body:R.kpi,theme:'grid',styles:{...base,fontSize:10},margin:{left:M,right:O.grades?W/2+2:W/2-10},columnStyles:{0:{fontStyle:'bold',fillColor:[244,246,251]},1:{halign:'center',fontStyle:'bold'}}}); yK=doc.lastAutoTable.finalY; }
     if(O.grades){ doc.autoTable({rowPageBreak:'avoid',startY:y,head:[['Qiymət','Bal aralığı','Say','Faiz']],body:R.grades,theme:'grid',styles:{...base,fontSize:10,halign:'center'},headStyles:head,margin:{left:O.kpi?W/2+2:M,right:O.kpi?M:W/2-10}}); yG=doc.lastAutoTable.finalY; }
     y=Math.max(yK,yG)+5; if(O.gchart) img(C.grades,110); }
-  if(O.std||O.stdc){ sec('Alt standartlar üzrə təhlil');
+  if((O.std||O.stdc)&&R.A.stdStats.length){ sec('Alt standartlar üzrə təhlil');
     if(O.std){ const SS=R.A.stdStats, it=R.hasIt;
       const body=SS.map((x,i)=>[(x.code==='—'?'Standart seçilməyib':dc(x.code,e.subject))+'\n'+(x.text||''),...(it?[x.items.length?x.items.map(t=>'• '+t).join('\n'):'—']:[]),x.qn.join(', '),fmt(x.max*1,2),pct(x.pct),LV[level(x.pct)]]);
       const o=it?1:0;
@@ -1864,11 +1864,11 @@ async function exportDocx(O){
     if(O.kpi){ sec1.push(tbl([62,38],PORT*0.6,R.kpi.map(k=>({cells:[[k[0],{bold:true,fill:L,size:20}],[k[1],{bold:true,center:true,size:22}]]})))); sec1.push(P('',{after:120})); }
     if(O.grades) sec1.push(tbl([20,30,25,25],PORT*0.6,[hd(['Qiymət','Bal aralığı','Şagird sayı','Faiz'],18),...R.grades.map(g=>({cells:g.map((t,i)=>[t,{center:true,bold:i===0||i===2,size:20}])}))]));
     if(O.gchart) sec1.push(image(C.grades,380)); }
-  if(O.std||O.stdc){ sec1.push(H('Alt standartlar üzrə təhlil'));
+  if((O.std||O.stdc)&&R.A.stdStats.length){ sec1.push(H('Alt standartlar üzrə təhlil'));
     if(O.std){ const it=R.hasIt; sec1.push(tbl(it?[28,32,9,8,12,11]:[56,13,10,12,10],PORT,[hd(['Alt standart',...(it?['Yoxlanılan fəaliyyətlər']:[]),'Suallar','Maks. bal','Mənimsəmə','Səviyyə']),...R.A.stdStats.map((x,i)=>{ const c=lc(x.pct), r=R.std[i];
       return {cells:[['',{rich:[{text:(x.code==='—'?'Standart seçilməyib':dc(x.code,e.subject))+' ',bold:true},{text:x.text||''}],size:17}],...(it?[[x.items.length?x.items.map(t=>'• '+t).join('\n'):'—',{size:16}]]:[]),[r[2],{center:true,size:17}],[r[3],{center:true,size:17}],[r[4],{center:true,bold:true,size:17,color:c}],[r[5],{center:true,size:17,color:c}]]}; })])); }
     if(O.stdc) sec1.push(image(C.std,600)); }
-  if(O.qs||O.qsc){ const hq=H('Suallar üzrə təhlil'); sec1.push(O.kpi||O.grades||O.std?new D.Paragraph({children:[new D.PageBreak()]}):P(''),hq);
+  if(O.qs||O.qsc){ const hq=H('Suallar üzrə təhlil'); sec1.push(O.kpi||O.grades||((O.std||O.stdc)&&R.A.stdStats.length)?new D.Paragraph({children:[new D.PageBreak()]}):P(''),hq);
     if(O.qs) sec1.push(tbl([6,9,12,7,9,11,9,11,7,12],PORT,[hd(['№','Növ','Standart','Bal','Orta bal','Düz / tam bal','Qismən','Səhv / 0 bal','Boş','Mənimsəmə'],15),...R.qs.map((r,i)=>({cells:r.map((t,k)=>[t,{center:true,size:16,bold:k===9||k===0,color:k===9?lc(R.A.qStats[i].pct):k===5?'15803D':k===6?'B45309':k===7?'B91C1C':undefined}])}))]));
     if(O.qsc) sec1.push(image(C.qs,600)); }
   if(O.note&&R.note){ sec1.push(H('Nəticə və təkliflər')); R.note.split(/\n/).forEach(l=>sec1.push(P(l,{size:20,after:80}))); }
@@ -2185,15 +2185,15 @@ async function exportXlsx(){
     const p=box(w1.getCell(R,9),{b:true,color:'FF'+LVC[level(A.qStats[j].pct)].slice(1).toUpperCase()}); p.value=q.type==='o'?{formula:`IFERROR(H${R}/(G${R}*$D$9)*100,0)`,result:Math.round(A.qStats[j].pct*10)/10}:{formula:`IFERROR(H${R}/$D$9*100,0)`,result:Math.round((A.n?A.qStats[j].right/A.n*100:0)*10)/10}; p.numFmt='0.0';
     w1.getRow(R).height=Math.max(18,Math.ceil((q.text||'').length/60)*14); });
   let R=H+n+3; const hd=(tx)=>{ const c=w1.getCell(R,2); c.value=tx; c.font={name:'Arial',bold:true,size:12,color:{argb:SC}}; R++; };
-  hd('Alt standartlar üzrə yekun');
+  if(A.stdStats.length){ hd('Alt standartlar üzrə yekun');
   [['Kod',3],['Açılış',4],['Suallar',7],['Maks. bal',8],['Mənimsəmə %',9]].forEach(([tx,c])=>box(w1.getCell(R,c),{fill:FH,b:true,color:'FFFFFFFF'}).value=tx); w1.mergeCells(R,4,R,6); R++;
   A.stdStats.forEach(x=>{ box(w1.getCell(R,3),{b:true}).value=dc(x.code,e.subject); w1.mergeCells(R,4,R,6); box(w1.getCell(R,4),{h:'left',sz:9}).value=x.items.length?{richText:[{text:x.text||'',font:{name:'Arial',size:9}},...x.items.map(t=>({text:'\n• '+t,font:{name:'Arial',size:8.5,italic:true,color:{argb:'FF4B5565'}}}))]}:x.text; box(w1.getCell(R,7),{sz:9}).value=x.qn.join(', '); box(w1.getCell(R,8)).value=x.max;
     const p=box(w1.getCell(R,9),{b:true,color:'FF'+LVC[level(x.pct)].slice(1).toUpperCase()}); p.value=Math.round(x.pct*10)/10; p.numFmt='0.0'; w1.getRow(R).height=Math.max(18,(Math.ceil((x.text||'').length/60)+x.items.reduce((a,t)=>a+Math.ceil((t.length+2)/62),0))*13); R++; });
-  R++; hd('Ümumi göstəricilər');
+  R++; } hd('Ümumi göstəricilər');
   [['Orta bal (100 baldan)',fmt(A.avg)],['Müvəffəqiyyət faizi',pct(A.succ)],['Keyfiyyət faizi',pct(A.qual)],['"5" / "4" / "3" / "2"',`${A.gc[5]} / ${A.gc[4]} / ${A.gc[3]} / ${A.gc[2]}`]].forEach(x=>{ w1.mergeCells(R,2,R,4); box(w1.getCell(R,2),{fill:FL,b:true,h:'left'}).value=x[0]; box(w1.getCell(R,5),{b:true}).value=x[1]; R++; });
   // QRAFİKLƏR
   const C=chartsFor(e,A,true), w3=wb.addWorksheet('Qrafiklər'); let y=1;
-  [[C.std,1000],[C.qs,1000],[C.grades,600],[C.st,1000]].forEach(([cv,wd])=>{ const id=wb.addImage({base64:cv.toDataURL('image/jpeg',0.95),extension:'jpeg'}); const hh=Math.round(wd*cv.height/cv.width*0.62); w3.addImage(id,{tl:{col:1,row:y},ext:{width:Math.round(wd*0.62),height:hh}}); y+=Math.ceil(hh/20)+2; });
+  [...(A.stdStats.length?[[C.std,1000]]:[]),[C.qs,1000],[C.grades,600],[C.st,1000]].forEach(([cv,wd])=>{ const id=wb.addImage({base64:cv.toDataURL('image/jpeg',0.95),extension:'jpeg'}); const hh=Math.round(wd*cv.height/cv.width*0.62); w3.addImage(id,{tl:{col:1,row:y},ext:{width:Math.round(wd*0.62),height:hh}}); y+=Math.ceil(hh/20)+2; });
   wb.worksheets.forEach(ws=>ws.pageSetup={paperSize:9,orientation:ws.name===SN&&n>12?'landscape':'portrait',fitToPage:true,fitToWidth:1,fitToHeight:0});
   // vərəq sırası: TƏLİMAT, Məzmun, Şagirdlər, Qrafiklər
   [w0,w1,w2,w3].forEach((w,i)=>w.orderNo=i);
@@ -2312,7 +2312,7 @@ function renderWiz(){
      <label class="f">Sinif</label><div class="gbtns">${[1,2,3,4].map(g=>`<button class="${+d.grade===g?'on':''}" onclick="wzSave();WZ.d.grade=${g};renderWiz()">${g}<small>${ordS(g)} sinif</small></button>`).join('')}</div>
      <div class="grid g2" style="margin-top:14px"><div><label class="f">Sinif hərfi</label><input class="inp" id="wzL" value="${esc(d.letter)}" placeholder="məs. a" maxlength="3"></div><div><label class="f">Tədris ili</label><input class="inp" id="wzY" value="${esc(d.year)}"></div></div>
      <div style="margin-top:12px"><label class="f">Müəllimin adı, soyadı</label><input class="inp" id="wzT" value="${esc(licOk()?LIC.name:d.teacher)}" ${licOk()?'readonly title="Aktivləşdirmə kodundan götürülür"':''}></div>
-     <div style="margin-top:12px"><label class="f">Məktəbin adı</label><input class="inp" id="wzS" value="${esc(licOk()?LIC.school:d.name)}" placeholder="məs. 274 nömrəli tam orta məktəb" ${licOk()?'readonly title="Aktivləşdirmə kodundan götürülür"':''}></div>`,
+     <div style="margin-top:12px"><label class="f">Məktəbin adı</label><input class="inp" id="wzS" value="${esc(licOk()?LIC.school:d.name)}" placeholder="məs. 1 nömrəli tam orta məktəb" ${licOk()?'readonly title="Aktivləşdirmə kodundan götürülür"':''}></div>`,
     `<h2>Şagird siyahısı</h2><p class="muted">Siyahını Excel-dən və ya Word-dən kopyalayıb aşağıya yapışdırın. Hər sətirdə bir şagird olsun.</p>
      <textarea class="inp" id="wzList" style="min-height:260px" placeholder="Abbasov Murad&#10;Əliyeva Leyla&#10;Babayev Nihad&#10;..." oninput="$('#wzCnt').textContent=this.value.split(/\\r?\\n/).map(cleanName).filter(Boolean).length">${esc(d.list)}</textarea>
      <div class="muted small" style="margin-top:8px"><b id="wzCnt">${d.list.split(/\r?\n/).map(cleanName).filter(Boolean).length}</b> şagird · sətrin əvvəlindəki nömrələr avtomatik silinir. Sonra da əlavə etmək olar.</div>`,
@@ -2689,7 +2689,7 @@ function onMKey(ev){ const t=ev.target; if(!t.classList||!t.classList.contains('
 function setMAbsent(sid,v){ const e=curEx(); mrec(e,sid).absent=v; save(); render(); }
 
 /* --- 3. təhlil --- */
-function mChartGrades(A,exp){ CHD=!exp&&isDark(); CHX=!!exp; const mx=Math.max(4,Math.ceil(Math.max(A.gc[5],A.gc[4],A.gc[3],A.gc[2])*1.2));
+function mChartGrades(A,exp){ CHD=!exp&&isDark(); CHX=!!exp; const mx=Math.max(5,Math.ceil(Math.max(A.gc[5],A.gc[4],A.gc[3],A.gc[2])*1.2/5)*5);
   const c=vChart({labels:['"5"','"4"','"3"','"2"'],values:[A.gc[5],A.gc[4],A.gc[3],A.gc[2]],colors:[GRC[5],GRC[4],GRC[3],GRC[2]],max:mx,suffix:'',w:exp?600:500,h:280,title:'Qiymətlər üzrə paylanma (şagird sayı)',fixed:0}); CHD=false; CHX=false; return c; }
 function vMotorA(e){
   const A=analyzeM(e), u=esc(e.norm.unit);

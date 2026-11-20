@@ -1002,7 +1002,7 @@ const maxName=()=>Math.max(8,...S.students.map(x=>String(x.name).length));
 const ordS=g=>({1:'-ci',2:'-ci',3:'-cü',4:'-cü'}[g]||'-ci');
 const DBN='ksq_bsq_tehlili', STORE='kv';
 const TOTAL=100;
-const APP_VER='3.8.8 · 15.11.2026';
+const APP_VER='3.8.9 · 20.11.2026';
 
 /* ================= KÖMƏKÇİLƏR ================= */
 const $=s=>document.querySelector(s);
@@ -1024,16 +1024,20 @@ function defaultState(){
   return {version:1, school:{name:'',year:'2026-2027',grade:3,letter:'',teacher:''},
     thresholds:[30,60,80], semW:40, students:[], standards:{}, exams:[], ui:{subject:null}, created:Date.now()};
 }
-function idb(){ return new Promise((res,rej)=>{ const r=indexedDB.open(DBN,1); r.onupgradeneeded=()=>r.result.createObjectStore(STORE); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+let IDB_P=null, IDB_DEAD=false;
+function idb(){ if(IDB_DEAD) return Promise.reject(new Error('IndexedDB işləmir')); if(IDB_P) return IDB_P; IDB_P=new Promise((res,rej)=>{ let done=false; const fin=(f,v)=>{ if(done) return; done=true; clearTimeout(t); f(v); };
+  const t=setTimeout(()=>{ IDB_P=null; IDB_DEAD=true; console.warn('IndexedDB cavab vermir — localStorage istifadə olunur'); fin(rej,new Error('IndexedDB cavab vermir')); },4000);
+  try{ const r=indexedDB.open(DBN,1); r.onupgradeneeded=()=>{ try{ r.result.createObjectStore(STORE); }catch(e){} }; r.onsuccess=()=>{ const db=r.result; db.onversionchange=()=>{ db.close(); IDB_P=null; }; fin(res,db); }; r.onerror=()=>{ IDB_P=null; fin(rej,r.error); }; r.onblocked=()=>{}; }catch(e){ IDB_P=null; fin(rej,e); } }); return IDB_P; }
 async function loadState(){
   let st=null;
-  try{ const db=await idb(); st=await new Promise(res=>{ const q=db.transaction(STORE).objectStore(STORE).get('state'); q.onsuccess=()=>res(q.result||null); q.onerror=()=>res(null); }); }catch(e){}
+  try{ st=await kvGet('state'); }catch(e){}
   if(!st){ try{ st=JSON.parse(localStorage.getItem(DBN)||'null'); }catch(e){} }
   return st;
 }
 let saveT=null;
 function save(){ clearTimeout(saveT); saveT=setTimeout(doSave,300); }
 async function doSave(noBk){
+  if(S&&S._broken) return;
   S.updated=Date.now();
   try{ const db=await idb(); db.transaction(STORE,'readwrite').objectStore(STORE).put(JSON.parse(JSON.stringify(S)),'state'); }catch(e){}
   try{ localStorage.setItem(DBN,JSON.stringify(S)); }catch(e){}
@@ -2338,7 +2342,7 @@ function wzClose(done){ S.setupDone=true; save(); const r=$('#wizRoot'); if(r) r
 
 /* ================= AVTOMATİK EHTİYAT NÜSXƏ (qovluğa) ================= */
 const BK={dir:null,perm:'none',last:0,timer:null,busy:false};
-async function kvGet(k){ try{ const db=await idb(); return await new Promise(res=>{ const q=db.transaction(STORE).objectStore(STORE).get(k); q.onsuccess=()=>res(q.result??null); q.onerror=()=>res(null); }); }catch(e){ return null; } }
+async function kvGet(k){ try{ const db=await idb(); return await new Promise(res=>{ const t=setTimeout(()=>res(null),4000); try{ const q=db.transaction(STORE).objectStore(STORE).get(k); q.onsuccess=()=>{ clearTimeout(t); res(q.result??null); }; q.onerror=()=>{ clearTimeout(t); res(null); }; }catch(e){ clearTimeout(t); res(null); } }); }catch(e){ return null; } }
 async function kvSet(k,v){ try{ const db=await idb(); await new Promise(res=>{ const t=db.transaction(STORE,'readwrite'); t.objectStore(STORE).put(v,k); t.oncomplete=res; t.onerror=res; }); }catch(e){} }
 async function bkInit(){
   if(!window.showDirectoryPicker){ BK.perm='unsupported'; return; }
@@ -2472,7 +2476,7 @@ function licParse(t){ t=String(t||''); const g=re=>{ const m=t.match(re); return
   const kl=g(/Kod\s*:\s*([A-Za-z0-9 \-]+)/i), src=kl||t; const code=(src.match(/([A-Z2-9]{4})\s*-?\s*([A-Z2-9]{4})\s*-?\s*([A-Z2-9]{4})/i)||[]).slice(1).join('-').toUpperCase();
   const ex=g(/(?:Etibarlıdır|Müddət)\s*:\s*(.+)/i);
   return {name:g(/Ad(?:\s*soyad)?\s*:\s*(.+)/i), school:g(/Məktəb\s*:\s*(.+)/i), no:lnoN(g(/Lisenziya\s*(?:№|N|No)?\s*:?\s*(\d+)/i)), exp:ex?(expN(ex)||'—'):'', code}; }
-async function kvGet(k){ try{ const db=await idb(); return await new Promise(res=>{ const q=db.transaction(STORE).objectStore(STORE).get(k); q.onsuccess=()=>res(q.result??null); q.onerror=()=>res(null); }); }catch(e){ return null; } }
+
 async function kvPut(k,v){ try{ const db=await idb(); db.transaction(STORE,'readwrite').objectStore(STORE).put(v,k); }catch(e){} }
 let SEEN=0; const NOW=()=>Math.max(Date.now(),SEEN);
 async function licInit(){
@@ -2760,24 +2764,49 @@ function mReport(kind){
 }
 
 function normalize(st){
-  st.school=Object.assign(defaultState().school,st.school||{}); st.ui=st.ui||{subject:null}; if(st.ui.subject&&!subj(st.ui.subject)) st.ui.subject=null;
+  if(!st||typeof st!=='object') st=defaultState(); st.school=Object.assign(defaultState().school,(st.school&&typeof st.school==='object')?st.school:{}); if(!st.ui||typeof st.ui!=='object') st.ui={subject:null}; if(st.ui.subject&&!subj(st.ui.subject)) st.ui.subject=null;
   if(!Array.isArray(st.thresholds)||st.thresholds.length!==3) st.thresholds=[30,60,80];
-  st.students=(st.students||[]).filter(x=>x&&x.id&&x.name); st.standards=st.standards||{};
-  st.exams=(st.exams||[]).filter(e=>e&&e.id&&subj(e.subject)&&Array.isArray(e.questions)).map(e=>{ e.scores=e.scores||{}; if(e.kind==='motor'){ e.res=e.res||{}; e.code=e.code||''; e.text=e.text||''; e.questions=[]; if(!FT_TESTS[e.test]) e.test='run30'; if(!e.norm||!Array.isArray(e.norm.m)||!Array.isArray(e.norm.f)) e.norm=ftNormFor(st.school.grade,e.test); e.norm.unit=FT_TESTS[e.test].unit; e.norm.dir=FT_TESTS[e.test].dir; ['m','f'].forEach(k=>{ if(e.norm[k].length!==3) e.norm[k]=[null,null,null]; }); }
-    Object.values(e.scores).forEach(r=>{ if(r.v&&!r.a){ r.a=r.v.map(x=>x==null?null:(+x>0?'+':'-')); delete r.v; } if(!r.a) r.a=[]; });
+  st.students=(Array.isArray(st.students)?st.students:[]).filter(x=>x&&x.id&&x.name); if(!st.standards||typeof st.standards!=='object') st.standards={};
+  st.exams=(Array.isArray(st.exams)?st.exams:[]).filter(e=>e&&e.id&&subj(e.subject)&&Array.isArray(e.questions)).map(e=>{ if(!e.scores||typeof e.scores!=='object') e.scores={}; Object.keys(e.scores).forEach(k=>{ if(!e.scores[k]||typeof e.scores[k]!=='object') delete e.scores[k]; }); e.questions=e.questions.filter(q=>q&&typeof q==='object'); if(e.kind==='motor'){ if(!e.res||typeof e.res!=='object') e.res={}; Object.keys(e.res).forEach(k=>{ if(!e.res[k]||typeof e.res[k]!=='object') delete e.res[k]; }); e.code=e.code||''; e.text=e.text||''; e.questions=[]; if(!FT_TESTS[e.test]) e.test='run30'; if(!e.norm||!Array.isArray(e.norm.m)||!Array.isArray(e.norm.f)) e.norm=ftNormFor(st.school.grade,e.test); e.norm.unit=FT_TESTS[e.test].unit; e.norm.dir=FT_TESTS[e.test].dir; ['m','f'].forEach(k=>{ if(e.norm[k].length!==3) e.norm[k]=[null,null,null]; }); }
+    Object.values(e.scores).forEach(r=>{ if(r.v&&!r.a){ r.a=r.v.map(x=>x==null?null:(+x>0?'+':'-')); delete r.v; } if(!Array.isArray(r.a)) r.a=[]; });
     e.questions.forEach(q=>{ q.max=+q.max||0; q.code=q.code||''; q.text=q.text||''; q.type=q.type==='o'?'o':'q'; q.items=Array.isArray(q.items)?q.items.filter(x=>typeof x==='string'&&x):[]; }); return e; });
   if((st.stdVer||0)<STD_VER){ st._stdSynced=syncBuiltinStd(st); st.stdVer=STD_VER; }
   return st;
 }
+const step=async(name,fn)=>{ try{ return await fn(); }catch(e){ BOOT.errs.push(name+': '+(e&&e.message||e)); console.error('[başlanğıc] '+name,e); } };
+const BOOT={ok:false,errs:[]};
+function bootFail(why){ if(BOOT.ok&&!why) return; const side=document.getElementById('side'), main=document.getElementById('main'); if(!main) return;
+  if(side&&!side.innerHTML.trim()) side.innerHTML='<div style="padding:22px;color:#fff;font-weight:700">KSQ və BSQ</div>';
+  const raw=(()=>{ try{ return localStorage.getItem(DBN)||''; }catch(e){ return ''; } })();
+  main.innerHTML=`<div style="max-width:720px;margin:48px auto;padding:28px;background:#fff;border:1px solid #e5e7eb;border-radius:16px;font:15px/1.6 system-ui,Segoe UI,sans-serif;color:#111">
+  <h2 style="margin:0 0 10px">Proqram tam açılmadı</h2>
+  <p style="margin:0 0 14px">Məlumatlarınız silinməyib. Aşağıdakı düymələri yuxarıdan aşağı sınayın.</p>
+  <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+   <button onclick="location.reload()" style="padding:10px 16px;border-radius:10px;border:0;background:#2563eb;color:#fff;font-weight:600;cursor:pointer">Yenidən yüklə</button>
+   ${raw?`<button id="bfDump" style="padding:10px 16px;border-radius:10px;border:1px solid #cbd5e1;background:#fff;font-weight:600;cursor:pointer">Məlumatların nüsxəsini yüklə</button>`:''}
+   <label style="padding:10px 16px;border-radius:10px;border:1px solid #cbd5e1;background:#fff;font-weight:600;cursor:pointer">Ehtiyat nüsxədən bərpa et<input type="file" accept=".json" id="bfRest" style="display:none"></label>
+  </div>
+  <p class="small" style="margin:0 0 6px;color:#555">Problem qalırsa, bu yazının şəklini çəkib göndərin: Rəhman Şərifov, ${typeof LIC_PHONE!=='undefined'?LIC_PHONE:'051 349 10 79'} (WhatsApp).</p>
+  <pre style="white-space:pre-wrap;background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:12px;font-size:12px;color:#b91c1c;margin:0">${String([why].concat(BOOT.errs).filter(Boolean).join('\n')).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}\nVersiya: ${typeof APP_VER!=='undefined'?APP_VER:'?'} · ${navigator.userAgent}</pre></div>`;
+  const d=document.getElementById('bfDump'); if(d) d.onclick=()=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([raw],{type:'application/json'})); a.download='KSQ_BSQ_xam_nusxe.json'; a.click(); };
+  const r=document.getElementById('bfRest'); if(r) r.onchange=()=>{ const f=r.files[0]; if(!f) return; const fr=new FileReader(); fr.onload=async()=>{ try{ const j=JSON.parse(fr.result); const st=j.state||j; if(!st.students||!st.exams) throw new Error('fayl düzgün deyil');
+      const ns=normalize(Object.assign(defaultState(),st)); delete ns._stdSynced; ns.setupDone=true; try{ localStorage.setItem(DBN,JSON.stringify(ns)); }catch(e){} await kvSet('state',JSON.parse(JSON.stringify(ns))); if(j.license&&typeof licValid==='function'&&licValid(j.license)){ try{ localStorage.setItem('ksq_lic',JSON.stringify(j.license)); }catch(e){} await kvSet('license',j.license); }
+      alert('Bərpa olundu. Proqram yenidən açılacaq.'); location.reload(); }catch(e){ alert('Bərpa alınmadı: '+e.message); } }; fr.readAsText(f); }; }
+window.addEventListener('error',e=>{ if(!BOOT.ok){ BOOT.errs.push('Xəta: '+(e.message||e.error)); } });
+window.addEventListener('unhandledrejection',e=>{ if(!BOOT.ok){ BOOT.errs.push('Xəta: '+(e.reason&&e.reason.message||e.reason)); } });
+setTimeout(()=>{ if(!BOOT.ok) bootFail('Proqram 12 saniyə ərzində başlamadı.'); },12000);
 (async()=>{
-  const st=await loadState(); S=normalize(st?Object.assign(defaultState(),st):defaultState()); await bkInit();
+  const st=await step('Məlumatların oxunması',loadState);
+  try{ S=normalize(st?Object.assign(defaultState(),st):defaultState()); }catch(e){ BOOT.errs.push('Məlumatlar zədəlidir: '+e.message+' — boş vəziyyətlə açıldı, köhnə məlumat toxunulmadan saxlanılır'); console.error(e); S=normalize(defaultState()); S._broken=true; }
+  await step('Ehtiyat qovluğu',bkInit);
   try{ if(localStorage.getItem('ksq_theme')==='dark') document.body.classList.add('dark'); }catch(e){}
-  try{ if(localStorage.getItem('ksq_side_mini')==='1') document.querySelector('.app').classList.add('mini'); }catch(e){} narrowCheck();
+  try{ if(localStorage.getItem('ksq_side_mini')==='1') document.querySelector('.app').classList.add('mini'); }catch(e){} await step('Ekran ölçüsü',narrowCheck);
   if(!S.setupDone&&S.students.length) S.setupDone=true;
-  if(S._stdSynced){ delete S._stdSynced; save(); setTimeout(()=>toast('Standartlar yeni kurikuluma uyğun yeniləndi','ok'),400); } else delete S._stdSynced;
-  pwaInit(); await licInit(); licSync();
-  render();
-  if(!licGate()&&!S.setupDone) openWizard();
+  if(S._stdSynced){ delete S._stdSynced; if(!S._broken) save(); setTimeout(()=>toast('Standartlar yeni kurikuluma uyğun yeniləndi','ok'),400); } else delete S._stdSynced;
+  await step('Veb rejimi',pwaInit); await step('Lisenziya',licInit); await step('Lisenziya adı',licSync);
+  try{ render(); BOOT.ok=true; }catch(e){ console.error(e); bootFail('Ekran çəkilmədi: '+(e&&e.message||e)); return; }
+  if(S._broken) bootFail('Yadda saxlanmış məlumat oxunmadı.');
+  try{ if(!licGate()&&!S.setupDone) openWizard(); }catch(e){ console.error(e); }
   if(navigator.storage&&navigator.storage.persist) navigator.storage.persist().catch(()=>{});
 })();
 window.addEventListener('beforeunload',()=>{ if(saveT){ clearTimeout(saveT); doSave(); } });

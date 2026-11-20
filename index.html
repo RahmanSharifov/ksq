@@ -1002,7 +1002,7 @@ const maxName=()=>Math.max(8,...S.students.map(x=>String(x.name).length));
 const ordS=g=>({1:'-ci',2:'-ci',3:'-cü',4:'-cü'}[g]||'-ci');
 const DBN='ksq_bsq_tehlili', STORE='kv';
 const TOTAL=100;
-const APP_VER='3.8.10 · 20.11.2026';
+const APP_VER='3.8.11 · 20.11.2026';
 
 /* ================= KÖMƏKÇİLƏR ================= */
 const $=s=>document.querySelector(s);
@@ -2204,6 +2204,98 @@ async function exportXlsx(){
   const buf=await wb.xlsx.writeBuffer(); download(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),reportName(e,'xlsx')); toast('Excel faylı hazırlandı','ok');
 }
 
+async function exportXlsxM(){
+  const e=curEx(), A=analyzeM(e), s=subj(e.subject), sc=S.school, T=FT_TESTS[e.test]||{}, u=e.norm.unit, low=e.norm.dir==='low', ns=S.students.length;
+  if(!A.n) return toast('Hələ nəticə daxil edilməyib','err');
+  const wb=new ExcelJS.Workbook(); wb.creator=sc.teacher||''; wb.calcProperties={fullCalcOnLoad:true};
+  const thin={style:'thin',color:{argb:'FFB8C0CF'}}, BR={top:thin,left:thin,bottom:thin,right:thin};
+  const SC='FF'+s.color.slice(1).toUpperCase(), FH={type:'pattern',pattern:'solid',fgColor:{argb:SC}}, FL={type:'pattern',pattern:'solid',fgColor:{argb:'FFF1F4FA'}}, FG={type:'pattern',pattern:'solid',fgColor:{argb:'FFEDEFF3'}};
+  const box=(c,o={})=>{ c.border=BR; c.alignment={vertical:'middle',horizontal:o.h||'center',wrapText:true}; if(o.fill) c.fill=o.fill; c.font={name:'Arial',size:o.sz||10,bold:!!o.b,color:o.color?{argb:o.color}:undefined}; return c; };
+  const hdr=(c)=>box(c,{fill:FH,b:true,color:'FFFFFFFF'});
+  const NF=T.dec?'0.'+'0'.repeat(T.dec):'0', SN='Şagirdlərin nəticəsi', BOY='Oğlan', GIRL='Qız', r1=v=>Math.round(v*10)/10;
+  const t=S.thresholds;
+  // TƏLİMAT
+  const w0=wb.addWorksheet('TƏLİMAT'); w0.getColumn(2).width=110;
+  ['Hörmətli müəllim!','Bu fayl "KSQ və BSQ təhlili proqramı" tərəfindən avtomatik hazırlanıb (Fiziki tərbiyə — hərəki test).',
+   `"${SN}" səhifəsində hər şagirdin cinsi (Oğlan / Qız) və ölçülmüş nəticəsi (${u}) yazılıb. Gəlməyən şagird üçün nəticə xanasında "yox" yazılır.`,
+   'Qiymət normativ cədvəlinə görə düsturla hesablanır: nəticəni, cinsi və ya normativ hədlərini dəyişsəniz, qiymət və bütün faizlər avtomatik yenilənir.',
+   low?'Vaxt testidir: qiyməti almaq üçün nəticə həmin həddə bərabər və ya ondan az olmalıdır. Həddi ödəməyən "2" alır.':'Qiyməti almaq üçün nəticə həmin həddə bərabər və ya ondan çox olmalıdır. Həddi ödəməyən "2" alır.',
+   'Müvəffəqiyyət faizi = "3", "4", "5" alanlar / iştirak edənlər × 100;  Keyfiyyət faizi = "4", "5" alanlar / iştirak edənlər × 100.'].forEach((x,i)=>{ const c=w0.getCell(3+i*2,2); c.value=x; c.font={name:'Arial',size:i?11:14,bold:!i}; c.alignment={wrapText:true,vertical:'top'}; });
+  // ŞAGİRDLƏR
+  const w2=wb.addWorksheet(SN,{views:[{state:'frozen',ySplit:8}]});
+  const R0=9, last=R0+ns-1;
+  [2,5,Math.min(48,Math.max(18,maxName()*1.1+2)),9,13,10,3,24,11,11,11].forEach((wd,i)=>w2.getColumn(i+1).width=wd);
+  [['Fənn:',s.name],['Sinif:',clsName()],['Müəllimin adı soyadı:',sc.teacher||''],[`${e.type}:`,`${exTitle(e)} · ${dAz(e.date)}`],['Test:',ftTitle(e)]].forEach((r,i)=>{ const a=w2.getCell(2+i,3); a.value=r[0]; a.font={name:'Arial',bold:true}; a.alignment={horizontal:'right'}; const b=w2.getCell(2+i,4); b.value=r[1]; b.font={name:'Arial',bold:true,color:{argb:SC}}; });
+  w2.getRow(8).height=32;
+  [['№',2],['Şagirdin adı, soyadı',3],['Cins',4],[`Nəticə (${u})`,5],['Qiymət',6]].forEach(([x,c])=>hdr(w2.getCell(8,c)).value=x);
+  // normativ cədvəli (sağda) — düsturlar buraya istinad edir
+  [['Normativ',8],['“3” həddi',9],['“4” həddi',10],['“5” həddi',11]].forEach(([x,c])=>hdr(w2.getCell(8,c)).value=x);
+  [['m',BOY+(e.test==='pull'?' (hündür turnik)':''),9],['f',GIRL+(e.test==='pull'?' (alçaq turnik)':''),10]].forEach(([g,lb,R])=>{ box(w2.getCell(R,8),{fill:FL,b:true,h:'left'}).value=lb; e.norm[g].forEach((x,j)=>{ const c=box(w2.getCell(R,9+j),{b:true}); c.value=x; c.numFmt=NF; }); });
+  const nc=w2.getCell(11,8); nc.value=`Ölçü vahidi: ${u}. ${low?'Nəticə ≤ hədd':'Nəticə ≥ hədd'} olmalıdır.`; nc.font={name:'Arial',size:9,italic:true,color:{argb:'FF4B5565'}}; w2.mergeCells(11,8,12,11); nc.alignment={wrapText:true,vertical:'top'};
+  const op=low?'<=':'>=';
+  const thr=(R,j)=>`IF(D${R}="${BOY}",${['$I$9','$J$9','$K$9'][j]},${['$I$10','$J$10','$K$10'][j]})`;
+  A.rows.forEach((r,i)=>{ const R=R0+i;
+    box(w2.getCell(R,2)).value=i+1; box(w2.getCell(R,3),{h:'left'}).value=r.st.name;
+    const g=box(w2.getCell(R,4),{fill:r.absent?FG:undefined}); g.value=r.g==='m'?BOY:r.g==='f'?GIRL:null;
+    g.dataValidation={type:'list',allowBlank:true,formulae:[`"${BOY},${GIRL}"`],showErrorMessage:true,errorTitle:'Cins',error:'Oğlan və ya Qız seçin.'};
+    const v=box(w2.getCell(R,5),{b:true,fill:r.absent?FG:undefined}); v.value=r.absent?'yox':r.v; v.numFmt=NF;
+    const gc=box(w2.getCell(R,6),{b:true,fill:r.absent?FG:undefined,color:r.lv?'FF'+GRC[r.lv].slice(1).toUpperCase():undefined});
+    gc.value={formula:`IF(E${R}="yox","yox",IF(OR(E${R}="",D${R}=""),"",IF(E${R}${op}${thr(R,2)},5,IF(E${R}${op}${thr(R,1)},4,IF(E${R}${op}${thr(R,0)},3,2)))))`,result:r.absent?'yox':(r.lv||'')};
+  });
+  // qiymət rəngləri Excel-də də yenilənsin
+  w2.addConditionalFormatting({ref:`F${R0}:F${last}`,rules:[5,4,3,2].map((g,k)=>({type:'cellIs',operator:'equal',formulae:[String(g)],priority:k+1,style:{font:{bold:true,color:{argb:'FF'+GRC[g].slice(1).toUpperCase()}}}}))});
+  const E=`E${R0}:E${last}`, F=`F${R0}:F${last}`, D=`D${R0}:D${last}`;
+  const M=`M${R0}:M${last}`; A.rows.forEach((r,i)=>{ const R=R0+i; w2.getCell(R,13).value={formula:`IF(ISNUMBER(F${R}),E${R},"")`,result:r.part?r.v:''}; }); w2.getColumn(13).hidden=true;
+  const best=low?`IF(COUNT(${M})=0,"",MIN(${M}))`:`IF(COUNT(${M})=0,"",MAX(${M}))`, worst=low?`IF(COUNT(${M})=0,"",MAX(${M}))`:`IF(COUNT(${M})=0,"",MIN(${M}))`;
+  const SUM_=[['İştirak edən şagird sayı:',{formula:`COUNT(${F})`,result:A.n},'0'],
+    [`Orta nəticə (${u}):`,{formula:`IFERROR(AVERAGEIF(${F},">0",${E}),"")`,result:A.avgV==null?'':r1(A.avgV)},NF],
+    ['Orta qiymət:',{formula:`IFERROR(AVERAGE(${F}),"")`,result:A.avgG==null?'':Math.round(A.avgG*100)/100},'0.00'],
+    ['Müvəffəqiyyət faizi:',{formula:`IFERROR(COUNTIF(${F},">=3")/COUNT(${F})*100,0)`,result:r1(A.succ)},'0.0"%"'],
+    ['Keyfiyyət faizi:',{formula:`IFERROR(COUNTIF(${F},">=4")/COUNT(${F})*100,0)`,result:r1(A.qual)},'0.0"%"'],
+    [`Ən yaxşı nəticə (${u}):`,{formula:`IFERROR(${best},"")`,result:A.best??''},NF],
+    [`Ən zəif nəticə (${u}):`,{formula:`IFERROR(${worst},"")`,result:A.worst??''},NF]];
+  const sR=last+2, SR={};
+  SUM_.forEach((x,i)=>{ const R=sR+i; const a=w2.getCell(R,3); a.value=x[0]; a.font={name:'Arial',bold:true}; a.alignment={horizontal:'right'}; w2.mergeCells(R,4,R,5); const b=box(w2.getCell(R,4),{b:true,sz:11}); b.value=x[1]; b.numFmt=x[2]; SR[i]=`'${SN}'!$D$${R}`; });
+  // ÜMUMİ NƏTİCƏ
+  const w1=wb.addWorksheet('Ümumi nəticə');
+  [2,22,14,13,13,13,13,16].forEach((wd,i)=>w1.getColumn(i+1).width=wd);
+  const info=[['Məktəbin adı',sc.name||''],[`${e.type} nömrəsi`,exTitle(e)+(e.label?` (${e.label})`:'')],['Tarix',dAz(e.date)],['Fənn',s.name],['Sinif',clsName()],['Müəllimin adı soyadı',sc.teacher||''],['Tədris ili',sc.year||''],['Test',ftTitle(e)],['Sinifdəki şagird sayı',A.cls],['İştirak edən şagird sayı',{formula:SR[0],result:A.n}]];
+  info.forEach((r,i)=>{ const R=2+i; box(w1.getCell(R,2),{fill:FL,b:true,h:'left'}).value=r[0]; w1.mergeCells(R,3,R,8); box(w1.getCell(R,3),{h:'left',b:true}).value=r[1]; });
+  let R=2+info.length+1; const hd=x=>{ const c=w1.getCell(R,2); c.value=x; c.font={name:'Arial',bold:true,size:12,color:{argb:SC}}; R++; };
+  if(e.code||e.text){ hd('Yoxlanılan alt standart'); hdr(w1.getCell(R,2)).value='Kod'; w1.mergeCells(R,3,R,8); hdr(w1.getCell(R,3)).value='Alt standart'; R++;
+    box(w1.getCell(R,2),{b:true}).value=dc(e.code,e.subject)||'—'; w1.mergeCells(R,3,R,8); box(w1.getCell(R,3),{h:'left',sz:9}).value=e.text||'—'; w1.getRow(R).height=Math.max(18,Math.ceil((e.text||'').length/80)*14); R+=2; }
+  hd('Normativ cədvəli');
+  [['Cins',2],[`“3” (${u})`,3],[`“4” (${u})`,4],[`“5” (${u})`,5]].forEach(([x,c])=>hdr(w1.getCell(R,c)).value=x); w1.mergeCells(R,6,R,8); hdr(w1.getCell(R,6)).value='Qayda'; R++;
+  [['m','Oğlanlar',9],['f','Qızlar',10]].forEach(([g,lb,sr])=>{ box(w1.getCell(R,2),{fill:FL,b:true,h:'left'}).value=lb+(e.test==='pull'?(g==='m'?' (hündür turnik)':' (alçaq turnik)'):'');
+    ['I','J','K'].forEach((L,j)=>{ const c=box(w1.getCell(R,3+j),{b:true}); c.value={formula:`'${SN}'!${L}${sr}`,result:e.norm[g][j]}; c.numFmt=NF; });
+    w1.mergeCells(R,6,R,8); box(w1.getCell(R,6),{sz:9}).value=low?'nəticə ≤ hədd':'nəticə ≥ hədd'; R++; });
+  R++; hd('Ümumi göstəricilər');
+  SUM_.forEach((x,i)=>{ w1.mergeCells(R,2,R,3); box(w1.getCell(R,2),{fill:FL,b:true,h:'left'}).value=x[0].replace(/:$/,''); const c=box(w1.getCell(R,4),{b:true}); c.value={formula:SR[i],result:x[1].result}; c.numFmt=x[2]; R++; });
+  R++; hd('Qiymətlər üzrə paylanma');
+  [['Qiymət',2],['Şagird sayı',3],['Faiz',4]].forEach(([x,c])=>hdr(w1.getCell(R,c)).value=x); R++;
+  const SF=`'${SN}'!$F$${R0}:$F$${last}`, SDg=`'${SN}'!$D$${R0}:$D$${last}`, SE=`'${SN}'!$E$${R0}:$E$${last}`;
+  [5,4,3,2].forEach(g=>{ box(w1.getCell(R,2),{b:true,color:'FF'+GRC[g].slice(1).toUpperCase()}).value=`"${g}"`; box(w1.getCell(R,3),{b:true}).value={formula:`COUNTIF(${SF},${g})`,result:A.gc[g]};
+    const p=box(w1.getCell(R,4)); p.value={formula:`IFERROR(C${R}/COUNT(${SF})*100,0)`,result:r1(A.gc[g]/A.n*100)}; p.numFmt='0.0"%"'; R++; });
+  R++; hd('Oğlanlar və qızlar üzrə');
+  [['Cins',2],['İştirak',3],[`Orta nəticə (${u})`,4],['Orta qiymət',5],['Müvəffəqiyyət',6],['Keyfiyyət',7],['5 / 4 / 3 / 2',8]].forEach(([x,c])=>hdr(w1.getCell(R,c)).value=x); w1.getRow(R).height=30; R++;
+  [[A.boys,BOY,'Oğlanlar'],[A.girls,GIRL,'Qızlar']].forEach(([B,k,lb])=>{ const cnt=`COUNTIFS(${SDg},"${k}",${SF},">=2")`;
+    box(w1.getCell(R,2),{fill:FL,b:true,h:'left'}).value=lb;
+    box(w1.getCell(R,3),{b:true}).value={formula:cnt,result:B.n};
+    const a=box(w1.getCell(R,4)); a.value={formula:`IFERROR(AVERAGEIFS(${SE},${SDg},"${k}",${SF},">=2"),"")`,result:B.avgV==null?'':r1(B.avgV)}; a.numFmt=NF;
+    const g=box(w1.getCell(R,5)); g.value={formula:`IFERROR(AVERAGEIFS(${SF},${SDg},"${k}",${SF},">=2"),"")`,result:B.avgG==null?'':Math.round(B.avgG*100)/100}; g.numFmt='0.00';
+    const sp=box(w1.getCell(R,6)); sp.value={formula:`IFERROR(COUNTIFS(${SDg},"${k}",${SF},">=3")/${cnt}*100,0)`,result:r1(B.succ)}; sp.numFmt='0.0"%"';
+    const q=box(w1.getCell(R,7)); q.value={formula:`IFERROR(COUNTIFS(${SDg},"${k}",${SF},">=4")/${cnt}*100,0)`,result:r1(B.qual)}; q.numFmt='0.0"%"';
+    box(w1.getCell(R,8),{sz:9}).value={formula:[5,4,3,2].map(n=>`COUNTIFS(${SDg},"${k}",${SF},${n})`).join('&" / "&'),result:`${B.gc[5]} / ${B.gc[4]} / ${B.gc[3]} / ${B.gc[2]}`}; R++; });
+  if(A.absent.length){ R++; const c=w1.getCell(R,2); c.value=`Gəlməyən şagirdlər: ${A.absent.map(r=>r.st.name).join(', ')}`; c.font={name:'Arial',size:9,italic:true}; w1.mergeCells(R,2,R,8); c.alignment={wrapText:true}; R++; }
+  if((e.note||'').trim()){ R++; hd('Nəticə və təkliflər'); w1.mergeCells(R,2,R+5,8); const c=w1.getCell(R,2); c.value=e.note.trim(); c.font={name:'Arial',size:10}; c.alignment={wrapText:true,vertical:'top'}; c.border=BR; w1.getRow(R).height=Math.max(18,Math.ceil(e.note.length/110)*14/6); R+=6; }
+  // QRAFİK
+  const w3=wb.addWorksheet('Qrafiklər'); const cv=mChartGrades(A,true);
+  const id=wb.addImage({base64:cv.toDataURL('image/jpeg',0.95),extension:'jpeg'}); w3.addImage(id,{tl:{col:1,row:1},ext:{width:Math.round(600*0.9),height:Math.round(600*0.9*cv.height/cv.width)}});
+  wb.worksheets.forEach(ws=>ws.pageSetup={paperSize:9,orientation:'portrait',fitToPage:true,fitToWidth:1,fitToHeight:0});
+  [w0,w1,w2,w3].forEach((w,i)=>w.orderNo=i);
+  const buf=await wb.xlsx.writeBuffer(); download(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),reportName(e,'xlsx')); toast('Excel faylı hazırlandı','ok');
+}
+
 /* ================= EXCEL İDXAL (köhnə forma) ================= */
 const normT=x=>String(x??'').toLocaleLowerCase('az').replace(/\s+/g,' ').trim();
 function xv(c){ let v=c?.value; if(v==null) return null; if(v instanceof Date) return v; if(typeof v==='object'){ if('result' in v) return v.result??null; if(v.richText) return v.richText.map(t=>t.text).join(''); if('text' in v) return v.text; if(v.error) return null; return null; } return v; }
@@ -2705,7 +2797,7 @@ function vMotorA(e){
   const gr=B=>B.n?`<tr><td><b>${B.k==='m'?'Oğlanlar':'Qızlar'}</b></td><td class="num">${B.n}</td><td class="num">${ftV(B.avgV,e)}</td><td class="num">${fmt(B.avgG,2)}</td><td class="num">${pct(B.succ)}</td><td class="num">${pct(B.qual)}</td><td class="num small" style="white-space:nowrap">${B.gc[5]} / ${B.gc[4]} / ${B.gc[3]} / ${B.gc[2]}</td></tr>`:`<tr><td><b>${B.k==='m'?'Oğlanlar':'Qızlar'}</b></td><td colspan="6" class="muted">iştirak edən yoxdur</td></tr>`;
   return `${warn.length?`<div class="note warn">${warn.join('<br>')}</div>`:''}
   <div class="card" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><b>Hesabatı yüklə:</b>
-    <button class="btn pri" onclick="rbRun(0,()=>mReport('pdf'))">${ic('pdf')}PDF</button><button class="btn pri" onclick="rbRun(0,()=>mReport('docx'))">${ic('doc')}DOCX (Word)</button>
+    <button class="btn pri" onclick="rbRun(0,()=>mReport('pdf'))">${ic('pdf')}PDF</button><button class="btn pri" onclick="rbRun(0,()=>mReport('docx'))">${ic('doc')}DOCX (Word)</button><button class="btn pri" onclick="rbRun(0,exportXlsxM)">${ic('xls')}Excel</button>
     <span class="muted small">Hesabatda: normativ cədvəli, ümumi göstəricilər, oğlan və qızlar üzrə təhlil, şagirdlərin nəticələri, nəticə və təkliflər.</span></div>
   <div class="grid g6" style="margin-bottom:16px">
     ${kp('İştirak',`${A.n}/${A.cls}`,A.absent.length?`${A.absent.length} şagird gəlməyib`:'hamı iştirak edib',false,'userCheck')}
